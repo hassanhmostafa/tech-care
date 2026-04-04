@@ -12,10 +12,10 @@ export default function Footer() {
               <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <Heart className="w-6 h-6 text-white" />
               </div>
-              <span className="font-bold text-xl text-white">Higi Saudi</span>
+              <span className="font-bold text-xl text-white">Tech Care</span>
             </div>
             <p className="text-sm text-gray-400">
-              Making healthcare accessible to everyone across Saudi Arabia
+              Empowering health through accessible technology and innovation
             </p>
           </div>
 
@@ -102,7 +102,7 @@ export default function Footer() {
         {/* Divider */}
         <div className="border-t border-gray-800 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-            <p>&copy; 2026 Higi Saudi. All rights reserved.</p>
+            <p>&copy; 2026 Tech Care. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-cyan-400 transition-colors">
                 Privacy Policy

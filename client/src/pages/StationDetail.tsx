@@ -202,7 +202,7 @@ export default function StationDetail() {
           <div className="container text-center">
             <h2 className="text-3xl font-bold mb-4">Ready for Your Health Screening?</h2>
             <p className="text-cyan-50 mb-6 max-w-2xl mx-auto">
-              Visit {kiosk.name} today and take the first step towards better health
+              Visit {kiosk.name} today with Tech Care and take the first step towards better health
             </p>
             <Button size="lg" className="bg-white text-cyan-600 hover:bg-gray-100">
               <MapPin className="w-4 h-4 mr-2" />

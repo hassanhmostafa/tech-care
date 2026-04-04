@@ -49,7 +49,7 @@ export default function FindStation() {
         {/* Header */}
         <section className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-12">
           <div className="container">
-            <h1 className="text-4xl font-bold mb-2">Find Your Nearest Station</h1>
+            <h1 className="text-4xl font-bold mb-2">Find Your Nearest Tech Care Station</h1>
             <p className="text-cyan-50">Locate health screening kiosks across Jeddah</p>
           </div>
         </section>

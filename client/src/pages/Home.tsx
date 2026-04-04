@@ -35,12 +35,12 @@ export default function Home() {
               </div>
 
               <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-                Take Control of Your Health
+                Your Health, Our Priority
               </h1>
 
               <p className="text-lg text-gray-200 leading-relaxed">
-                Access free health screenings at convenient kiosk locations across Jeddah. Measure your vital signs,
-                track your wellness journey, and get personalized health insights.
+                Access advanced health screenings at convenient kiosk locations across Jeddah. Measure your vital signs,
+                track your wellness journey, and get personalized health insights with Tech Care.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -102,7 +102,7 @@ export default function Home() {
       <section className="py-20 bg-white">
         <div className="container">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Why Choose Higi Saudi?</h2>
+            <h2 className="text-3xl font-bold mb-4">Why Choose Tech Care?</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Experience modern healthcare accessibility with our comprehensive health screening platform
             </p>
@@ -210,10 +210,10 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
         <div className="container text-center">
-          <h2 className="text-4xl font-bold mb-6">Ready to Take Control of Your Health?</h2>
-          <p className="text-xl mb-8 text-cyan-50 max-w-2xl mx-auto">
-            Find your nearest health station today and start your wellness journey
-          </p>
+          <h2 className="text-4xl font-bold mb-6">Ready to Start Your Wellness Journey?</h2>
+            <p className="text-xl mb-8 text-cyan-50 max-w-2xl mx-auto">
+              Find your nearest Tech Care station today and take control of your health
+            </p>
           <Link href="/find-station">
             <Button size="lg" className="bg-white text-cyan-600 hover:bg-gray-100">
               <MapPin className="w-4 h-4 mr-2" />
