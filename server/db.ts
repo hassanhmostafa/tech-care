@@ -1,4 +1,4 @@
-import { eq, like, or, desc } from "drizzle-orm";
+import { eq, like, or, desc, and, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, kiosks, InsertKiosk, healthReadings, InsertHealthReading } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -239,6 +239,27 @@ export async function getUserReadings(userId: number) {
     .select()
     .from(healthReadings)
     .where(eq(healthReadings.userId, userId))
+    .orderBy(desc(healthReadings.recordedAt));
+}
+
+/**
+ * Get health readings for a user since a given date (for chart range filtering).
+ * Pass null for `since` to get all readings (Max range).
+ */
+export async function getUserReadingsSince(userId: number, since: Date | null) {
+  const db = await getDb();
+  if (!db) return [];
+  if (since === null) {
+    return db
+      .select()
+      .from(healthReadings)
+      .where(eq(healthReadings.userId, userId))
+      .orderBy(desc(healthReadings.recordedAt));
+  }
+  return db
+    .select()
+    .from(healthReadings)
+    .where(and(eq(healthReadings.userId, userId), gte(healthReadings.recordedAt, since)))
     .orderBy(desc(healthReadings.recordedAt));
 }
 

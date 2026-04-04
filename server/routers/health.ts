@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { getUserReadings, createHealthReading, deleteHealthReading, getUserById } from "../db";
+import { getUserReadings, getUserReadingsSince, createHealthReading, deleteHealthReading, getUserById } from "../db";
 import { TRPCError } from "@trpc/server";
 import { calculateBmi, calculateWeightTarget } from "../../shared/bmi";
 import { calculateHealthScore } from "../../shared/healthScore";
@@ -18,6 +18,27 @@ export const healthRouter = router({
   myReadings: protectedProcedure.query(async ({ ctx }) => {
     return getUserReadings(ctx.user.id);
   }),
+
+  /**
+   * Get health readings filtered by time range for chart display.
+   * range: '1W' | '1M' | '1Y' | 'MAX'
+   * Frontend: trpc.health.chartReadings.useQuery({ range })
+   */
+  chartReadings: protectedProcedure
+    .input(z.object({ range: z.enum(["1W", "1M", "1Y", "MAX"]) }))
+    .query(async ({ ctx, input }) => {
+      const now = new Date();
+      let since: Date | null = null;
+      if (input.range === "1W") {
+        since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (input.range === "1M") {
+        since = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+      } else if (input.range === "1Y") {
+        since = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+      }
+      // MAX: since = null → returns all
+      return getUserReadingsSince(ctx.user.id, since);
+    }),
 
   /**
    * Log a new health reading.

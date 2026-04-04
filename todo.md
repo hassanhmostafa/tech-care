@@ -46,3 +46,10 @@
 - [x] Ideal weight target with kg to lose/gain and progress bar on health dashboard
 - [x] Health score summary (0-100) combining BP, HR, BMI, temperature
 - [x] Arabic/English language toggle with full RTL layout support
+
+## Chart Time Range Feature
+- [x] Spread seed health readings over 12+ months for meaningful range data
+- [x] Add time range filter (1W, 1M, 1Y, Max) to health readings tRPC procedure
+- [x] Build range selector UI above charts (pill buttons like currency charts)
+- [x] Update X-axis date format per range (e.g. "Apr 4" for week, "Mar 16" for month, "Jan" for year)
+- [x] Add area fill under lines for visual polish

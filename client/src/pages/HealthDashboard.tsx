@@ -53,6 +53,8 @@ import { Link } from "wouter";
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -475,6 +477,7 @@ export default function HealthDashboard() {
   const [showLog, setShowLog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<LogFormData>(emptyForm);
+  const [chartRange, setChartRange] = useState<"1W" | "1M" | "1Y" | "MAX">("1M");
 
   const { data: readings, isLoading: readingsLoading } = trpc.health.myReadings.useQuery(
     undefined,
@@ -531,21 +534,34 @@ export default function HealthDashboard() {
     });
   };
 
-  // Build chart data from readings (newest first → reverse for chart)
+  const { data: chartRaw, isLoading: chartLoading } = trpc.health.chartReadings.useQuery(
+    { range: chartRange },
+    { enabled: isAuthenticated }
+  );
+
+  // Format x-axis date label based on range
+  function formatChartDate(dateVal: Date | string, range: string): string {
+    const d = new Date(dateVal);
+    if (range === "1W") return format(d, "EEE d");   // Mon 4
+    if (range === "1M") return format(d, "MMM d");   // Apr 4
+    if (range === "1Y") return format(d, "MMM");     // Apr
+    return format(d, "MMM yy");                       // Apr 25
+  }
+
+  // Build chart data from range-filtered readings (oldest first for chart)
   const chartData = useMemo(() => {
-    if (!readings) return [];
-    return [...readings]
+    if (!chartRaw) return [];
+    return [...chartRaw]
       .reverse()
-      .slice(-10)
       .map((r) => ({
-        date: format(new Date(r.recordedAt), "MMM d"),
+        date: formatChartDate(r.recordedAt, chartRange),
         systolic: r.bloodPressureSystolic ?? null,
         diastolic: r.bloodPressureDiastolic ?? null,
         heartRate: r.heartRate ?? null,
         weight: r.weight ? parseFloat(r.weight) : null,
         bmi: r.bmi ? parseFloat(r.bmi) : null,
       }));
-  }, [readings]);
+  }, [chartRaw, chartRange]);
 
   // Latest values for summary cards
   const latest = readings?.[0];
@@ -666,39 +682,88 @@ export default function HealthDashboard() {
           </div>
 
           {/* Charts */}
-          {chartData.length > 1 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="p-5 border-0 shadow-sm">
-                <h3 className="font-semibold text-gray-800 mb-4">{t.health_bpTrend}</h3>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} domain={["auto", "auto"]} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} dot={false} name="Systolic" />
-                    <Line type="monotone" dataKey="diastolic" stroke="#f97316" strokeWidth={2} dot={false} name="Diastolic" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Card>
-
-              <Card className="p-5 border-0 shadow-sm">
-                <h3 className="font-semibold text-gray-800 mb-4">{t.health_hrWeight}</h3>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} domain={["auto", "auto"]} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="heartRate" stroke="#ec4899" strokeWidth={2} dot={false} name="Heart Rate (bpm)" />
-                    <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} dot={false} name="Weight (kg)" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Card>
+          <div className="space-y-4">
+            {/* Range selector */}
+            <div className="flex items-center gap-2">
+              {(["1W", "1M", "1Y", "MAX"] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setChartRange(r)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    chartRange === r
+                      ? "bg-cyan-500 text-white shadow-sm"
+                      : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
+                  }`}
+                >
+                  {r === "1W" ? "1 Week" : r === "1M" ? "1 Month" : r === "1Y" ? "1 Year" : "Max"}
+                </button>
+              ))}
+              {chartLoading && <Loader2 className="w-4 h-4 text-cyan-400 animate-spin ml-2" />}
             </div>
-          )}
+
+            {chartData.length > 1 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Blood Pressure Chart */}
+                <Card className="p-5 border-0 shadow-sm">
+                  <h3 className="font-semibold text-gray-800 mb-4">{t.health_bpTrend}</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="gradSystolic" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="gradDiastolic" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
+                          <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                      <Tooltip />
+                      <Legend />
+                      <Area type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} fill="url(#gradSystolic)" dot={false} name="Systolic" />
+                      <Area type="monotone" dataKey="diastolic" stroke="#f97316" strokeWidth={2} fill="url(#gradDiastolic)" dot={false} name="Diastolic" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Card>
+
+                {/* Heart Rate & Weight Chart */}
+                <Card className="p-5 border-0 shadow-sm">
+                  <h3 className="font-semibold text-gray-800 mb-4">{t.health_hrWeight}</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ec4899" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="gradWeight" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.12} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                      <Tooltip />
+                      <Legend />
+                      <Area type="monotone" dataKey="heartRate" stroke="#ec4899" strokeWidth={2} fill="url(#gradHR)" dot={false} name="Heart Rate (bpm)" />
+                      <Area type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} fill="url(#gradWeight)" dot={false} name="Weight (kg)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Card>
+              </div>
+            ) : (
+              !chartLoading && (
+                <Card className="p-8 border-0 shadow-sm text-center text-gray-400">
+                  <Activity className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No readings in this time range. Try a wider range.</p>
+                </Card>
+              )
+            )}
+          </div>
 
           {/* BMI Comparison Section */}
           <BmiComparisonCard bmiData={bmiData} bmiLoading={bmiLoading} />
