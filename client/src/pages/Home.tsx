@@ -23,7 +23,7 @@ export default function Home() {
           className="absolute inset-0 z-0"
           style={{
             backgroundImage:
-              "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/hero-health-kiosk-5mwyXD2eAKfFKPmEnVJdix.webp')",
+              "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/hero-saudi-health-kiosk-NRzfZXegcsWHzFnxDeZ669.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -79,8 +79,8 @@ export default function Home() {
             {/* Metrics Visual */}
             <div className="hidden md:block">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/health-metrics-visual-M3LugxJgaMsdLyecxjVXzc.webp"
-                alt="Health Metrics"
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/saudi-health-metrics-visual-DCZetwq6kVnzJnMLeqDceb.webp"
+                alt="Saudi man in white thobe viewing health metrics at a kiosk"
                 className="w-full rounded-2xl shadow-2xl"
               />
             </div>
@@ -213,12 +213,23 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
-        <div className="container text-center">
+      <section className="relative py-24 overflow-hidden">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 z-0"
+          style={{
+            backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/saudi-family-health-McbDwsXTAThgLJyCtT9GZ3.webp')",
+            backgroundSize: "cover",
+            backgroundPosition: "center top",
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-700/85 via-blue-700/75 to-cyan-600/85"></div>
+        </div>
+        <div className="relative z-10 container text-center text-white">
           <h2 className="text-4xl font-bold mb-6">Ready to Start Your Wellness Journey?</h2>
-            <p className="text-xl mb-8 text-cyan-50 max-w-2xl mx-auto">
-              Find your nearest Tech Care station today and take control of your health
-            </p>
+          <p className="text-xl mb-8 text-cyan-50 max-w-2xl mx-auto">
+            Find your nearest Tech Care station today and take control of your health
+          </p>
           <Link href="/find-station">
             <Button size="lg" className="bg-white text-cyan-600 hover:bg-gray-100">
               <MapPin className="w-4 h-4 mr-2" />

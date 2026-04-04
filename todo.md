@@ -20,3 +20,8 @@
 - [x] Add operating hours editor to Admin kiosk form
 - [x] Add services editor to Admin kiosk form
 - [x] Seed test health readings for demo
+
+## Cultural Imagery Update
+- [x] Generate Saudi-appropriate hero image (men in white thobes, women in black abayas at health kiosk)
+- [x] Generate Saudi-appropriate health metrics visual image
+- [x] Upload images to CDN and update website references
