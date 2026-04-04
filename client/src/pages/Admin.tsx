@@ -37,8 +37,17 @@ import {
   Mail,
   Loader2,
   ShieldAlert,
+  Clock,
+  X,
+  Stethoscope,
 } from "lucide-react";
 import { Link } from "wouter";
+
+interface HourEntry {
+  day: string;
+  open: string;
+  close: string;
+}
 
 interface KioskFormData {
   name: string;
@@ -50,7 +59,11 @@ interface KioskFormData {
   email: string;
   image: string;
   rating: string;
+  hours: HourEntry[];
+  services: string[];
 }
+
+const DEFAULT_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const emptyForm: KioskFormData = {
   name: "",
@@ -62,6 +75,8 @@ const emptyForm: KioskFormData = {
   email: "",
   image: "",
   rating: "",
+  hours: [],
+  services: [],
 };
 
 export default function Admin() {
@@ -73,6 +88,9 @@ export default function Admin() {
   const [formData, setFormData] = useState<KioskFormData>(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Service input state
+  const [serviceInput, setServiceInput] = useState("");
+
   const { data: kiosks, isLoading } = trpc.admin.listKiosks.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
   });
@@ -83,6 +101,7 @@ export default function Admin() {
       utils.kiosks.list.invalidate();
       setShowForm(false);
       setFormData(emptyForm);
+      setServiceInput("");
       toast.success("Kiosk created successfully");
     },
     onError: (e) => toast.error(e.message),
@@ -95,6 +114,7 @@ export default function Admin() {
       setShowForm(false);
       setEditingId(null);
       setFormData(emptyForm);
+      setServiceInput("");
       toast.success("Kiosk updated successfully");
     },
     onError: (e) => toast.error(e.message),
@@ -131,17 +151,26 @@ export default function Admin() {
       email: kiosk.email ?? "",
       image: kiosk.image ?? "",
       rating: kiosk.rating ?? "",
+      hours: Array.isArray(kiosk.hours) ? kiosk.hours : [],
+      services: Array.isArray(kiosk.services) ? kiosk.services : [],
     });
+    setServiceInput("");
     setShowForm(true);
   };
 
   const handleSubmit = () => {
     const payload = {
-      ...formData,
+      name: formData.name,
+      location: formData.location,
+      address: formData.address,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
       phone: formData.phone || undefined,
       email: formData.email || undefined,
       image: formData.image || undefined,
       rating: formData.rating || undefined,
+      hours: formData.hours.length > 0 ? formData.hours : undefined,
+      services: formData.services.length > 0 ? formData.services : undefined,
     };
     if (editingId) {
       updateMutation.mutate({ id: editingId, data: payload });
@@ -154,11 +183,50 @@ export default function Admin() {
     setShowForm(false);
     setEditingId(null);
     setFormData(emptyForm);
+    setServiceInput("");
+  };
+
+  // ── Hours helpers ────────────────────────────────────────────────────────────
+  const addHourRow = () => {
+    const usedDays = formData.hours.map((h) => h.day);
+    const nextDay = DEFAULT_DAYS.find((d) => !usedDays.includes(d)) ?? "Sunday";
+    setFormData((p) => ({
+      ...p,
+      hours: [...p.hours, { day: nextDay, open: "09:00", close: "21:00" }],
+    }));
+  };
+
+  const updateHourRow = (idx: number, field: keyof HourEntry, value: string) => {
+    setFormData((p) => {
+      const updated = [...p.hours];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return { ...p, hours: updated };
+    });
+  };
+
+  const removeHourRow = (idx: number) => {
+    setFormData((p) => ({ ...p, hours: p.hours.filter((_, i) => i !== idx) }));
+  };
+
+  // ── Services helpers ─────────────────────────────────────────────────────────
+  const addService = () => {
+    const trimmed = serviceInput.trim();
+    if (!trimmed) return;
+    if (formData.services.includes(trimmed)) {
+      toast.error("Service already added");
+      return;
+    }
+    setFormData((p) => ({ ...p, services: [...p.services, trimmed] }));
+    setServiceInput("");
+  };
+
+  const removeService = (idx: number) => {
+    setFormData((p) => ({ ...p, services: p.services.filter((_, i) => i !== idx) }));
   };
 
   const isBusy = createMutation.isPending || updateMutation.isPending;
 
-  // Auth guard
+  // ── Auth guard ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -178,9 +246,7 @@ export default function Admin() {
           <div className="text-center max-w-md px-4">
             <ShieldAlert className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-            <p className="text-gray-600 mb-6">
-              This page is restricted to administrators only.
-            </p>
+            <p className="text-gray-600 mb-6">This page is restricted to administrators only.</p>
             <Link href="/">
               <Button className="bg-cyan-500 hover:bg-cyan-600">Go Home</Button>
             </Link>
@@ -205,7 +271,7 @@ export default function Admin() {
             </div>
             <Button
               className="bg-cyan-500 hover:bg-cyan-600"
-              onClick={() => { setEditingId(null); setFormData(emptyForm); setShowForm(true); }}
+              onClick={() => { setEditingId(null); setFormData(emptyForm); setServiceInput(""); setShowForm(true); }}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Kiosk
@@ -275,8 +341,17 @@ export default function Admin() {
                             </span>
                           )}
                         </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {Array.isArray(kiosk.services) && kiosk.services.slice(0, 4).map((s: string) => (
+                            <span key={s} className="text-xs bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">{s}</span>
+                          ))}
+                          {Array.isArray(kiosk.services) && kiosk.services.length > 4 && (
+                            <span className="text-xs text-gray-400">+{kiosk.services.length - 4} more</span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-400 mt-1">
-                          {kiosk.latitude}, {kiosk.longitude} · Rating: {kiosk.rating ?? "N/A"}
+                          {kiosk.latitude}, {kiosk.longitude} · Rating: {kiosk.rating ?? "N/A"} ·{" "}
+                          {Array.isArray(kiosk.hours) ? kiosk.hours.length : 0} hour entries
                         </p>
                       </div>
 
@@ -299,11 +374,7 @@ export default function Admin() {
                             <ToggleLeft className="w-4 h-4 text-gray-400" />
                           )}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(kiosk)}
-                        >
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(kiosk)}>
                           <Pencil className="w-4 h-4" />
                         </Button>
                         <Button
@@ -326,46 +397,152 @@ export default function Admin() {
 
       <Footer />
 
-      {/* Create / Edit Dialog */}
+      {/* ── Create / Edit Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showForm} onOpenChange={(open) => !open && handleCloseForm()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Kiosk" : "Add New Kiosk"}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            {(
-              [
-                { key: "name", label: "Station Name *", placeholder: "Red Sea Mall Health Station" },
-                { key: "location", label: "Location / Area *", placeholder: "Red Sea Mall" },
-                { key: "address", label: "Full Address *", placeholder: "King Abdulaziz Road, Jeddah" },
-                { key: "latitude", label: "Latitude *", placeholder: "21.5433" },
-                { key: "longitude", label: "Longitude *", placeholder: "39.1726" },
-                { key: "phone", label: "Phone", placeholder: "+966 12 645 8888" },
-                { key: "email", label: "Email", placeholder: "station@techcare.com" },
-                { key: "image", label: "Image URL", placeholder: "https://..." },
-                { key: "rating", label: "Rating (0–5)", placeholder: "4.8" },
-              ] as { key: keyof KioskFormData; label: string; placeholder: string }[]
-            ).map(({ key, label, placeholder }) => (
-              <div key={key}>
-                <Label htmlFor={key} className="text-sm font-medium">
-                  {label}
+          <div className="space-y-5 py-2">
+            {/* ── Basic Info ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {(
+                [
+                  { key: "name", label: "Station Name *", placeholder: "Red Sea Mall Health Station", full: true },
+                  { key: "location", label: "Location / Area *", placeholder: "Red Sea Mall", full: false },
+                  { key: "address", label: "Full Address *", placeholder: "King Abdulaziz Road, Jeddah", full: true },
+                  { key: "latitude", label: "Latitude *", placeholder: "21.5433", full: false },
+                  { key: "longitude", label: "Longitude *", placeholder: "39.1726", full: false },
+                  { key: "phone", label: "Phone", placeholder: "+966 12 645 8888", full: false },
+                  { key: "email", label: "Email", placeholder: "station@techcare.com", full: false },
+                  { key: "image", label: "Image URL", placeholder: "https://...", full: true },
+                  { key: "rating", label: "Rating (0–5)", placeholder: "4.8", full: false },
+                ] as { key: keyof KioskFormData; label: string; placeholder: string; full: boolean }[]
+              ).map(({ key, label, placeholder, full }) => (
+                key === "hours" || key === "services" ? null : (
+                  <div key={key} className={full ? "sm:col-span-2" : ""}>
+                    <Label htmlFor={key} className="text-sm font-medium">{label}</Label>
+                    <Input
+                      id={key}
+                      value={formData[key] as string}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      className="mt-1"
+                    />
+                  </div>
+                )
+              ))}
+            </div>
+
+            {/* ── Operating Hours ── */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-cyan-600" />
+                  Operating Hours
                 </Label>
-                <Input
-                  id={key}
-                  value={formData[key]}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, [key]: e.target.value }))}
-                  placeholder={placeholder}
-                  className="mt-1"
-                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addHourRow}
+                  disabled={formData.hours.length >= 7}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Add Day
+                </Button>
               </div>
-            ))}
+
+              {formData.hours.length === 0 ? (
+                <p className="text-sm text-gray-400 italic py-2">No hours added yet. Click "Add Day" to start.</p>
+              ) : (
+                <div className="space-y-2">
+                  {formData.hours.map((row, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <select
+                        value={row.day}
+                        onChange={(e) => updateHourRow(idx, "day", e.target.value)}
+                        className="flex-1 border border-gray-200 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      >
+                        {DEFAULT_DAYS.map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="time"
+                        value={row.open}
+                        onChange={(e) => updateHourRow(idx, "open", e.target.value)}
+                        className="border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      />
+                      <span className="text-gray-400 text-sm">–</span>
+                      <input
+                        type="time"
+                        value={row.close}
+                        onChange={(e) => updateHourRow(idx, "close", e.target.value)}
+                        className="border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-400 hover:text-red-600 px-1.5"
+                        onClick={() => removeHourRow(idx)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Services ── */}
+            <div>
+              <Label className="text-sm font-medium flex items-center gap-1.5 mb-2">
+                <Stethoscope className="w-4 h-4 text-cyan-600" />
+                Available Services
+              </Label>
+
+              <div className="flex gap-2 mb-2">
+                <Input
+                  placeholder="e.g. Blood Pressure, BMI, Heart Rate..."
+                  value={serviceInput}
+                  onChange={(e) => setServiceInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addService(); } }}
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" onClick={addService} disabled={!serviceInput.trim()}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {formData.services.length === 0 ? (
+                <p className="text-sm text-gray-400 italic">No services added yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {formData.services.map((svc, idx) => (
+                    <span
+                      key={idx}
+                      className="flex items-center gap-1 bg-cyan-50 text-cyan-700 text-sm px-3 py-1 rounded-full"
+                    >
+                      {svc}
+                      <button
+                        type="button"
+                        onClick={() => removeService(idx)}
+                        className="ml-1 text-cyan-400 hover:text-red-500"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={handleCloseForm}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={handleCloseForm}>Cancel</Button>
             <Button
               className="bg-cyan-500 hover:bg-cyan-600"
               onClick={handleSubmit}
@@ -378,7 +555,7 @@ export default function Admin() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* ── Delete Confirmation ──────────────────────────────────────────────── */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

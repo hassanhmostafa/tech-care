@@ -238,6 +238,26 @@ export async function createHealthReading(data: InsertHealthReading) {
 }
 
 /**
+ * Seed health readings for a given user (idempotent via recordedAt uniqueness).
+ * Used only for demo/test data.
+ */
+export async function seedHealthReadings(data: InsertHealthReading[]) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot seed health readings: database not available");
+    return;
+  }
+  for (const reading of data) {
+    try {
+      await db.insert(healthReadings).values(reading);
+    } catch {
+      // Ignore duplicate entries silently
+    }
+  }
+  console.log(`[Database] Seeded ${data.length} health readings`);
+}
+
+/**
  * Delete a single health reading by ID (user must own it).
  */
 export async function deleteHealthReading(id: number, userId: number) {

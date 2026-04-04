@@ -7,8 +7,9 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { seedKiosks } from "../db";
+import { seedKiosks, seedHealthReadings } from "../db";
 import { SEED_KIOSKS } from "../seed";
+import { SEED_HEALTH_READINGS } from "../seedHealth";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +36,13 @@ async function startServer() {
     await seedKiosks(SEED_KIOSKS);
   } catch (err) {
     console.warn("[Seed] Could not seed kiosks:", err);
+  }
+
+  // Seed demo health readings for user id=1 (safe to run multiple times)
+  try {
+    await seedHealthReadings(SEED_HEALTH_READINGS);
+  } catch (err) {
+    console.warn("[Seed] Could not seed health readings:", err);
   }
 
   const app = express();

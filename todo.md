@@ -14,3 +14,9 @@
 - [x] Admin panel for kiosk CRUD management (protected /admin route)
 - [x] User health history dashboard (log and view screening results)
 - [x] Get Directions button integration with Google Maps navigation
+
+## New Tasks
+- [x] Fix Trend component crash (undefined values array)
+- [x] Add operating hours editor to Admin kiosk form
+- [x] Add services editor to Admin kiosk form
+- [x] Seed test health readings for demo

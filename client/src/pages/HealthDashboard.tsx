@@ -87,10 +87,11 @@ function calcBmi(weight: string, height: string): string {
   return (w / (h * h)).toFixed(1);
 }
 
-function Trend({ values }: { values: number[] }) {
-  if (values.length < 2) return <Minus className="w-4 h-4 text-gray-400" />;
-  const last = values[values.length - 1];
-  const prev = values[values.length - 2];
+function Trend({ values }: { values: (number | null | undefined)[] }) {
+  const clean = (values ?? []).filter((v): v is number => v != null);
+  if (clean.length < 2) return <Minus className="w-4 h-4 text-gray-400" />;
+  const last = clean[clean.length - 1];
+  const prev = clean[clean.length - 2];
   if (last > prev) return <TrendingUp className="w-4 h-4 text-red-500" />;
   if (last < prev) return <TrendingDown className="w-4 h-4 text-green-500" />;
   return <Minus className="w-4 h-4 text-gray-400" />;
@@ -167,10 +168,10 @@ export default function HealthDashboard() {
 
   // Latest values for summary cards
   const latest = readings?.[0];
-  const bpSystolicValues = readings?.map((r) => r.bloodPressureSystolic).filter(Boolean) as number[];
-  const hrValues = readings?.map((r) => r.heartRate).filter(Boolean) as number[];
-  const weightValues = readings?.map((r) => (r.weight ? parseFloat(r.weight) : null)).filter(Boolean) as number[];
-  const bmiValues = readings?.map((r) => (r.bmi ? parseFloat(r.bmi) : null)).filter(Boolean) as number[];
+  const bpSystolicValues = (readings ?? []).map((r) => r.bloodPressureSystolic ?? null);
+  const hrValues = (readings ?? []).map((r) => r.heartRate ?? null);
+  const weightValues = (readings ?? []).map((r) => (r.weight ? parseFloat(r.weight) : null));
+  const bmiValues = (readings ?? []).map((r) => (r.bmi ? parseFloat(r.bmi) : null));
 
   if (loading) {
     return (
