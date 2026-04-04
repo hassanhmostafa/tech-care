@@ -59,3 +59,6 @@
 - [x] Add BMI trend chart
 - [x] Add Health Score trend chart
 - [x] Add show/hide toggle system for each chart
+
+## Layout Adjustments
+- [x] Swap Charts and BMI Comparison sections so Charts appear directly above Reading History

@@ -690,6 +690,9 @@ export default function HealthDashboard() {
             ))}
           </div>
 
+          {/* BMI Comparison Section */}
+          <BmiComparisonCard bmiData={bmiData} bmiLoading={bmiLoading} />
+
           {/* Charts */}
           <div className="space-y-4">
             {/* Top bar: range selector + chart toggles */}
@@ -899,9 +902,6 @@ export default function HealthDashboard() {
               </Card>
             )}
           </div>
-
-          {/* BMI Comparison Section */}
-          <BmiComparisonCard bmiData={bmiData} bmiLoading={bmiLoading} />
 
           {/* Readings History */}
           <div>
