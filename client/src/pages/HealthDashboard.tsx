@@ -473,6 +473,7 @@ function BmiComparisonCard({ bmiData, bmiLoading }: { bmiData: BmiDataState; bmi
 export default function HealthDashboard() {
   const { user, isAuthenticated, loading } = useAuth();
   const utils = trpc.useUtils();
+  const { t } = useLanguage();
 
   const [showLog, setShowLog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -580,8 +581,6 @@ export default function HealthDashboard() {
       </div>
     );
   }
-
-  const { t } = useLanguage();
 
   if (!isAuthenticated) {
     return (
