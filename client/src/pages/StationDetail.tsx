@@ -50,6 +50,16 @@ export default function StationDetail() {
 
   const serviceIcons = [Droplet, Zap, Heart, Thermometer];
 
+  const lat = kiosk.latitude ? parseFloat(kiosk.latitude) : null;
+  const lng = kiosk.longitude ? parseFloat(kiosk.longitude) : null;
+
+  const handleGetDirections = () => {
+    if (!lat || !lng) return;
+    // Opens Google Maps directions in a new tab using the kiosk coordinates
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(kiosk.name)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
@@ -190,7 +200,12 @@ export default function StationDetail() {
                       <Clock className="w-4 h-4 mr-2" />
                       Book Screening
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleGetDirections}
+                      disabled={!lat || !lng}
+                    >
                       <MapPin className="w-4 h-4 mr-2" />
                       Get Directions
                     </Button>
@@ -240,7 +255,12 @@ export default function StationDetail() {
             <p className="text-cyan-50 mb-6 max-w-2xl mx-auto">
               Visit {kiosk.name} today with Tech Care and take the first step towards better health
             </p>
-            <Button size="lg" className="bg-white text-cyan-600 hover:bg-gray-100">
+            <Button
+              size="lg"
+              className="bg-white text-cyan-600 hover:bg-gray-100"
+              onClick={handleGetDirections}
+              disabled={!lat || !lng}
+            >
               <MapPin className="w-4 h-4 mr-2" />
               Get Directions
             </Button>

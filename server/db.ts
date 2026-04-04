@@ -1,6 +1,6 @@
-import { eq, like, or } from "drizzle-orm";
+import { eq, like, or, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, kiosks, InsertKiosk } from "../drizzle/schema";
+import { InsertUser, users, kiosks, InsertKiosk, healthReadings, InsertHealthReading } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -153,4 +153,97 @@ export async function seedKiosks(data: InsertKiosk[]) {
       .onDuplicateKeyUpdate({ set: { updatedAt: new Date() } });
   }
   console.log(`[Database] Seeded ${data.length} kiosks`);
+}
+
+/**
+ * Retrieve ALL kiosks (active and inactive) — for admin use only.
+ */
+export async function getAllKiosksAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kiosks);
+}
+
+/**
+ * Create a new kiosk.
+ */
+export async function createKiosk(data: InsertKiosk) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(kiosks).values(data);
+  const result = await db.select().from(kiosks).where(eq(kiosks.id, data.id)).limit(1);
+  return result[0];
+}
+
+/**
+ * Update an existing kiosk by ID.
+ */
+export async function updateKiosk(id: string, data: Partial<InsertKiosk>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(kiosks).set({ ...data, updatedAt: new Date() }).where(eq(kiosks.id, id));
+  const result = await db.select().from(kiosks).where(eq(kiosks.id, id)).limit(1);
+  return result[0];
+}
+
+/**
+ * Soft-delete a kiosk by setting isActive = "false".
+ */
+export async function deactivateKiosk(id: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(kiosks).set({ isActive: "false", updatedAt: new Date() }).where(eq(kiosks.id, id));
+}
+
+/**
+ * Permanently delete a kiosk by ID.
+ */
+export async function deleteKiosk(id: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(kiosks).where(eq(kiosks.id, id));
+}
+
+// ─────────────────────────────────────────────
+// Health readings helpers
+// ─────────────────────────────────────────────
+
+/**
+ * Get all health readings for a specific user, newest first.
+ */
+export async function getUserReadings(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(healthReadings)
+    .where(eq(healthReadings.userId, userId))
+    .orderBy(desc(healthReadings.recordedAt));
+}
+
+/**
+ * Log a new health reading for a user.
+ */
+export async function createHealthReading(data: InsertHealthReading) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(healthReadings).values(data);
+  const result = await db
+    .select()
+    .from(healthReadings)
+    .where(eq(healthReadings.userId, data.userId))
+    .orderBy(desc(healthReadings.recordedAt))
+    .limit(1);
+  return result[0];
+}
+
+/**
+ * Delete a single health reading by ID (user must own it).
+ */
+export async function deleteHealthReading(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .delete(healthReadings)
+    .where(eq(healthReadings.id, id));
 }

@@ -15,6 +15,13 @@
       "when": 1775320434597,
       "tag": "0001_watery_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1775321148678,
+      "tag": "0002_nosy_red_shift",
+      "breakpoints": true
     }
   ]
 }

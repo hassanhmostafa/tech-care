@@ -7,6 +7,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import FindStation from "./pages/FindStation";
 import StationDetail from "./pages/StationDetail";
+import Admin from "./pages/Admin";
+import HealthDashboard from "./pages/HealthDashboard";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -15,6 +17,8 @@ function Router() {
       <Route path={"\\"} component={Home} />
       <Route path={"/find-station"} component={FindStation} />
       <Route path={"/station/:id"} component={StationDetail} />
+      <Route path={"/admin"} component={Admin} />
+      <Route path={"/health"} component={HealthDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

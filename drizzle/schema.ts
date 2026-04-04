@@ -59,3 +59,35 @@ export const kiosks = mysqlTable("kiosks", {
 
 export type KioskRecord = typeof kiosks.$inferSelect;
 export type InsertKiosk = typeof kiosks.$inferInsert;
+
+/**
+ * Health readings table.
+ * Stores individual screening results logged by users at a kiosk.
+ * Each row links a user to a kiosk and records the metric values measured.
+ */
+export const healthReadings = mysqlTable("health_readings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  kioskId: varchar("kioskId", { length: 64 }).notNull(),
+  /** Systolic blood pressure in mmHg */
+  bloodPressureSystolic: int("bloodPressureSystolic"),
+  /** Diastolic blood pressure in mmHg */
+  bloodPressureDiastolic: int("bloodPressureDiastolic"),
+  /** Heart rate in bpm */
+  heartRate: int("heartRate"),
+  /** Weight in kg */
+  weight: decimal("weight", { precision: 5, scale: 1 }),
+  /** Height in cm */
+  height: decimal("height", { precision: 5, scale: 1 }),
+  /** Body Mass Index */
+  bmi: decimal("bmi", { precision: 4, scale: 1 }),
+  /** Body temperature in Celsius */
+  temperature: decimal("temperature", { precision: 4, scale: 1 }),
+  /** Optional free-text notes */
+  notes: text("notes"),
+  recordedAt: timestamp("recordedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type HealthReading = typeof healthReadings.$inferSelect;
+export type InsertHealthReading = typeof healthReadings.$inferInsert;
