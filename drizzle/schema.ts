@@ -17,6 +17,10 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  /** User's gender, chosen during profile setup. Used for BMI calculations. */
+  gender: mysqlEnum("gender", ["male", "female"]),
+  /** User's date of birth (stored as a date string YYYY-MM-DD). Used to compute age for BMI. */
+  birthDate: varchar("birthDate", { length: 10 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut } from "lucide-react";
+import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -59,7 +59,14 @@ export default function Navigation() {
         <div className="hidden md:flex items-center gap-3">
           {isAuthenticated ? (
             <>
-              <span className="text-sm text-gray-600 font-medium">{user?.name?.split(" ")[0]}</span>
+              <Link href="/profile">
+                <span className={`text-sm font-medium flex items-center gap-1 cursor-pointer transition-colors ${
+                  location === "/profile" ? "text-cyan-600" : "text-gray-600 hover:text-cyan-600"
+                }`}>
+                  <UserCircle2 className="w-4 h-4" />
+                  {user?.name?.split(" ")[0]}
+                </span>
+              </Link>
               <Button
                 variant="ghost"
                 className="text-gray-700 hover:text-red-600"

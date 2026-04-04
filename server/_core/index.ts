@@ -7,9 +7,10 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { seedKiosks, seedHealthReadings } from "../db";
+import { seedKiosks, seedHealthReadings, updateUserProfile, getUserByOpenId } from "../db";
 import { SEED_KIOSKS } from "../seed";
 import { SEED_HEALTH_READINGS } from "../seedHealth";
+import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -43,6 +44,17 @@ async function startServer() {
     await seedHealthReadings(SEED_HEALTH_READINGS);
   } catch (err) {
     console.warn("[Seed] Could not seed health readings:", err);
+  }
+
+  // Seed demo profile data for the owner user (gender + birthDate for BMI demo)
+  try {
+    const owner = await getUserByOpenId(ENV.ownerOpenId);
+    if (owner && (!owner.gender || !owner.birthDate)) {
+      await updateUserProfile(owner.id, { gender: "male", birthDate: "1990-05-15" });
+      console.log("[Seed] Owner profile seeded with demo gender + birthDate");
+    }
+  } catch (err) {
+    console.warn("[Seed] Could not seed owner profile:", err);
   }
 
   const app = express();

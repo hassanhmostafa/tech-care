@@ -31,3 +31,13 @@
 - [x] Regenerate metrics visual with Saudi man in white thobe only
 - [x] Regenerate CTA background with Saudi men in white thobes only
 - [x] Upload to CDN and update website references
+
+## BMI Comparison Feature
+- [x] Add gender and birthDate fields to users table schema
+- [x] Run DB migration
+- [x] Add profile tRPC procedures (getProfile, updateProfile)
+- [x] Build profile setup/edit page for gender and birth date
+- [x] Implement actual BMI and ideal BMI calculation logic on server
+- [x] Add BMI comparison UI component to health dashboard
+- [x] Add test height/weight data to seed for BMI demo
+- [x] Write vitest tests for BMI calculation

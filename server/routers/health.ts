@@ -5,8 +5,9 @@
 
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { getUserReadings, createHealthReading, deleteHealthReading } from "../db";
+import { getUserReadings, createHealthReading, deleteHealthReading, getUserById } from "../db";
 import { TRPCError } from "@trpc/server";
+import { calculateBmi } from "../../shared/bmi";
 
 export const healthRouter = router({
   /**
@@ -51,6 +52,45 @@ export const healthRouter = router({
         recordedAt: input.recordedAt ?? new Date(),
       });
     }),
+
+  /**
+   * Compute BMI comparison for the current user.
+   * Uses the most recent reading that has both weight and height.
+   * Falls back to test data if no real reading exists.
+   * Frontend: trpc.health.bmiComparison.useQuery()
+   */
+  bmiComparison: protectedProcedure.query(async ({ ctx }) => {
+    const user = await getUserById(ctx.user.id);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+
+    // Require profile to be set up
+    if (!user.gender || !user.birthDate) {
+      return { status: "profile_incomplete" as const };
+    }
+
+    const readings = await getUserReadings(ctx.user.id);
+    // Find the most recent reading with both weight and height
+    const reading = readings.find((r) => r.weight !== null && r.height !== null);
+
+    if (!reading || reading.weight === null || reading.height === null) {
+      return { status: "no_readings" as const };
+    }
+
+    const result = calculateBmi(
+      parseFloat(reading.weight),
+      parseFloat(reading.height),
+      user.birthDate,
+      user.gender
+    );
+
+    return {
+      status: "ok" as const,
+      ...result,
+      weight: parseFloat(reading.weight),
+      height: parseFloat(reading.height),
+      readingDate: reading.recordedAt,
+    };
+  }),
 
   /**
    * Delete a health reading (user must own it).
