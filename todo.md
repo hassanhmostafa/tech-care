@@ -53,3 +53,9 @@
 - [x] Build range selector UI above charts (pill buttons like currency charts)
 - [x] Update X-axis date format per range (e.g. "Apr 4" for week, "Mar 16" for month, "Jan" for year)
 - [x] Add area fill under lines for visual polish
+
+## Chart Improvements
+- [x] Separate Heart Rate and Weight into individual charts
+- [x] Add BMI trend chart
+- [x] Add Health Score trend chart
+- [x] Add show/hide toggle system for each chart

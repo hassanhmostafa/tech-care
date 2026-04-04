@@ -479,6 +479,16 @@ export default function HealthDashboard() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<LogFormData>(emptyForm);
   const [chartRange, setChartRange] = useState<"1W" | "1M" | "1Y" | "MAX">("1M");
+  const [visibleCharts, setVisibleCharts] = useState<Record<string, boolean>>({
+    bloodPressure: true,
+    heartRate: true,
+    weight: false,
+    bmi: false,
+    healthScore: false,
+  });
+
+  const toggleChart = (key: string) =>
+    setVisibleCharts((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const { data: readings, isLoading: readingsLoading } = trpc.health.myReadings.useQuery(
     undefined,
@@ -682,8 +692,9 @@ export default function HealthDashboard() {
 
           {/* Charts */}
           <div className="space-y-4">
-            {/* Range selector */}
-            <div className="flex items-center gap-2">
+            {/* Top bar: range selector + chart toggles */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Range pills */}
               {(["1W", "1M", "1Y", "MAX"] as const).map((r) => (
                 <button
                   key={r}
@@ -697,70 +708,195 @@ export default function HealthDashboard() {
                   {r === "1W" ? "1 Week" : r === "1M" ? "1 Month" : r === "1Y" ? "1 Year" : "Max"}
                 </button>
               ))}
-              {chartLoading && <Loader2 className="w-4 h-4 text-cyan-400 animate-spin ml-2" />}
+              {chartLoading && <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />}
+
+              {/* Divider */}
+              <span className="w-px h-5 bg-gray-200 mx-1" />
+
+              {/* Chart toggle pills */}
+              {([
+                { key: "bloodPressure", label: "Blood Pressure", color: "#ef4444" },
+                { key: "heartRate",    label: "Heart Rate",     color: "#ec4899" },
+                { key: "weight",       label: "Weight",         color: "#3b82f6" },
+                { key: "bmi",          label: "BMI",            color: "#8b5cf6" },
+                { key: "healthScore",  label: "Health Score",   color: "#10b981" },
+              ] as const).map(({ key, label, color }) => (
+                <button
+                  key={key}
+                  onClick={() => toggleChart(key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    visibleCharts[key]
+                      ? "text-white shadow-sm"
+                      : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"
+                  }`}
+                  style={visibleCharts[key] ? { backgroundColor: color, borderColor: color } : {}}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: visibleCharts[key] ? "white" : color }}
+                  />
+                  {label}
+                </button>
+              ))}
             </div>
 
-            {chartData.length > 1 ? (
+            {/* Chart grid — only visible charts rendered */}
+            {Object.values(visibleCharts).some(Boolean) ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Blood Pressure Chart */}
-                <Card className="p-5 border-0 shadow-sm">
-                  <h3 className="font-semibold text-gray-800 mb-4">{t.health_bpTrend}</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="gradSystolic" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="gradDiastolic" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
-                          <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
-                      <Tooltip />
-                      <Legend />
-                      <Area type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} fill="url(#gradSystolic)" dot={false} name="Systolic" />
-                      <Area type="monotone" dataKey="diastolic" stroke="#f97316" strokeWidth={2} fill="url(#gradDiastolic)" dot={false} name="Diastolic" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </Card>
 
-                {/* Heart Rate & Weight Chart */}
-                <Card className="p-5 border-0 shadow-sm">
-                  <h3 className="font-semibold text-gray-800 mb-4">{t.health_hrWeight}</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ec4899" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="gradWeight" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.12} />
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
-                      <Tooltip />
-                      <Legend />
-                      <Area type="monotone" dataKey="heartRate" stroke="#ec4899" strokeWidth={2} fill="url(#gradHR)" dot={false} name="Heart Rate (bpm)" />
-                      <Area type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} fill="url(#gradWeight)" dot={false} name="Weight (kg)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </Card>
+                {/* Blood Pressure */}
+                {visibleCharts.bloodPressure && (
+                  <Card className="p-5 border-0 shadow-sm">
+                    <h3 className="font-semibold text-gray-800 mb-4">Blood Pressure Trend</h3>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="gradSystolic" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="gradDiastolic" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
+                            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                        <Tooltip />
+                        <Legend />
+                        <Area type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} fill="url(#gradSystolic)" dot={false} name="Systolic (mmHg)" />
+                        <Area type="monotone" dataKey="diastolic" stroke="#f97316" strokeWidth={2} fill="url(#gradDiastolic)" dot={false} name="Diastolic (mmHg)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Card>
+                )}
+
+                {/* Heart Rate */}
+                {visibleCharts.heartRate && (
+                  <Card className="p-5 border-0 shadow-sm">
+                    <h3 className="font-semibold text-gray-800 mb-4">Heart Rate Trend</h3>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ec4899" stopOpacity={0.18} />
+                            <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                        <Tooltip />
+                        <Legend />
+                        <Area type="monotone" dataKey="heartRate" stroke="#ec4899" strokeWidth={2} fill="url(#gradHR)" dot={false} name="Heart Rate (bpm)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Card>
+                )}
+
+                {/* Weight */}
+                {visibleCharts.weight && (
+                  <Card className="p-5 border-0 shadow-sm">
+                    <h3 className="font-semibold text-gray-800 mb-4">Weight Trend</h3>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="gradWeight" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                        <Tooltip />
+                        <Legend />
+                        <Area type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} fill="url(#gradWeight)" dot={false} name="Weight (kg)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Card>
+                )}
+
+                {/* BMI */}
+                {visibleCharts.bmi && (
+                  <Card className="p-5 border-0 shadow-sm">
+                    <h3 className="font-semibold text-gray-800 mb-4">BMI Trend</h3>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="gradBmi" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                        <Tooltip />
+                        <Legend />
+                        {/* Healthy BMI reference band */}
+                        <Area type="monotone" dataKey="bmi" stroke="#8b5cf6" strokeWidth={2} fill="url(#gradBmi)" dot={false} name="BMI" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Card>
+                )}
+
+                {/* Health Score */}
+                {visibleCharts.healthScore && (
+                  <Card className="p-5 border-0 shadow-sm">
+                    <h3 className="font-semibold text-gray-800 mb-4">Health Score Trend</h3>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart
+                        data={chartData.map((d) => ({
+                          ...d,
+                          score: (() => {
+                            // Compute a per-point health score from available metrics
+                            let total = 0; let count = 0;
+                            if (d.systolic != null && d.diastolic != null) {
+                              const s = d.systolic <= 120 && d.diastolic <= 80 ? 100
+                                : d.systolic <= 130 && d.diastolic <= 85 ? 80
+                                : d.systolic <= 140 && d.diastolic <= 90 ? 60
+                                : d.systolic <= 160 ? 40 : 20;
+                              total += s; count++;
+                            }
+                            if (d.heartRate != null) {
+                              const h = d.heartRate >= 60 && d.heartRate <= 100 ? 100
+                                : d.heartRate >= 50 && d.heartRate <= 110 ? 70 : 40;
+                              total += h; count++;
+                            }
+                            if (d.bmi != null) {
+                              const b = d.bmi >= 18.5 && d.bmi <= 24.9 ? 100
+                                : d.bmi >= 17 && d.bmi <= 27 ? 70 : 40;
+                              total += b; count++;
+                            }
+                            return count > 0 ? Math.round(total / count) : null;
+                          })(),
+                        }))}
+                      >
+                        <defs>
+                          <linearGradient id="gradScore" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.18} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
+                        <Tooltip />
+                        <Legend />
+                        <Area type="monotone" dataKey="score" stroke="#10b981" strokeWidth={2} fill="url(#gradScore)" dot={false} name="Health Score" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Card>
+                )}
+
               </div>
             ) : (
-              !chartLoading && (
-                <Card className="p-8 border-0 shadow-sm text-center text-gray-400">
-                  <Activity className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No readings in this time range. Try a wider range.</p>
-                </Card>
-              )
+              <Card className="p-8 border-0 shadow-sm text-center text-gray-400">
+                <Activity className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No charts selected. Use the toggles above to show charts.</p>
+              </Card>
             )}
           </div>
 
