@@ -23,7 +23,7 @@ export default function Home() {
           className="absolute inset-0 z-0"
           style={{
             backgroundImage:
-              "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/hero-saudi-health-kiosk-NRzfZXegcsWHzFnxDeZ669.webp')",
+              "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/hero-saudi-men-v2-hoJqY6wbb2nWcn7TZn8r3k.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -79,7 +79,7 @@ export default function Home() {
             {/* Metrics Visual */}
             <div className="hidden md:block">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/saudi-health-metrics-visual-DCZetwq6kVnzJnMLeqDceb.webp"
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/metrics-saudi-men-v2-ic8MSPfMaYeSjUHa7b2D8s.webp"
                 alt="Saudi man in white thobe viewing health metrics at a kiosk"
                 className="w-full rounded-2xl shadow-2xl"
               />
@@ -218,7 +218,7 @@ export default function Home() {
         <div
           className="absolute inset-0 z-0"
           style={{
-            backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/saudi-family-health-McbDwsXTAThgLJyCtT9GZ3.webp')",
+            backgroundImage: "url('https://d2xsxph8kpxj0f.cloudfront.net/310519663052167250/adQspJefUTFqKyf6yHum6G/cta-saudi-men-v2-UEdVAg6Asj7XjvMrzeeFX6.webp')",
             backgroundSize: "cover",
             backgroundPosition: "center top",
           }}

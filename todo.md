@@ -25,3 +25,9 @@
 - [x] Generate Saudi-appropriate hero image (men in white thobes, women in black abayas at health kiosk)
 - [x] Generate Saudi-appropriate health metrics visual image
 - [x] Upload images to CDN and update website references
+
+## Image Update - Men Only
+- [x] Regenerate hero image with Saudi men in white thobes only (no women)
+- [x] Regenerate metrics visual with Saudi man in white thobe only
+- [x] Regenerate CTA background with Saudi men in white thobes only
+- [x] Upload to CDN and update website references
