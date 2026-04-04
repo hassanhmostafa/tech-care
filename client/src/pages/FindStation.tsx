@@ -9,8 +9,10 @@ import Footer from "@/components/Footer";
 import KioskMap from "@/components/KioskMap";
 import { Kiosk, calculateDistance } from "@/lib/kiosks";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function FindStation() {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedKiosk, setSelectedKiosk] = useState<Kiosk | null>(null);
@@ -55,8 +57,8 @@ export default function FindStation() {
         {/* Header */}
         <section className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-12">
           <div className="container">
-            <h1 className="text-4xl font-bold mb-2">Find Your Nearest Tech Care Station</h1>
-            <p className="text-cyan-50">Locate health screening kiosks across Jeddah</p>
+            <h1 className="text-4xl font-bold mb-2">{t.findStation_title}</h1>
+            <p className="text-cyan-50">{t.findStation_subtitle}</p>
           </div>
         </section>
 
@@ -67,13 +69,13 @@ export default function FindStation() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
-                  placeholder="Search by location, name, or address..."
+                  placeholder={t.findStation_searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              <Button className="bg-cyan-500 hover:bg-cyan-600">Search</Button>
+              <Button className="bg-cyan-500 hover:bg-cyan-600">{t.home_searchBtn}</Button>
             </div>
           </div>
         </section>
@@ -106,7 +108,7 @@ export default function FindStation() {
                 {!isLoading && !error && kiosks.length === 0 && (
                   <Card className="p-8 text-center">
                     <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-600">No stations found matching your search</p>
+                    <p className="text-gray-600">{t.findStation_noResults}</p>
                   </Card>
                 )}
 
@@ -151,7 +153,7 @@ export default function FindStation() {
 
                         <Link href={`/station/${kiosk.id}`}>
                           <Button size="sm" className="w-full bg-cyan-500 hover:bg-cyan-600 text-white">
-                            View Details
+                            {t.findStation_viewDetails}
                           </Button>
                         </Link>
                       </div>

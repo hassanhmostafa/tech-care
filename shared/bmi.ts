@@ -16,6 +16,19 @@
  * Ideal BMI = ideal weight / height (m)²
  */
 
+export interface WeightTargetResult {
+  /** Ideal weight in kg based on Devine formula */
+  idealWeightKg: number;
+  /** Current weight in kg */
+  currentWeightKg: number;
+  /** Difference: positive = need to lose, negative = need to gain */
+  diffKg: number;
+  /** Progress toward ideal weight (0-100). 100 = at ideal weight */
+  progressPct: number;
+  /** Whether user needs to lose or gain weight */
+  direction: "lose" | "gain" | "at_ideal";
+}
+
 export interface BmiResult {
   /** Actual BMI calculated from measured weight and height */
   actualBmi: number;
@@ -66,6 +79,28 @@ export function idealWeightKg(heightCm: number, gender: "male" | "female"): numb
   const inchesOver5Feet = Math.max(0, heightInches - 60);
   const base = gender === "male" ? 50 : 45.5;
   return base + 2.3 * inchesOver5Feet;
+}
+
+/**
+ * Calculate ideal weight target and progress toward it.
+ */
+export function calculateWeightTarget(
+  currentWeightKg: number,
+  heightCm: number,
+  gender: "male" | "female"
+): WeightTargetResult {
+  const ideal = parseFloat(idealWeightKg(heightCm, gender).toFixed(1));
+  const diff = parseFloat((currentWeightKg - ideal).toFixed(1));
+  const absDiff = Math.abs(diff);
+
+  // Progress: 100% when at ideal. Starts from a max deviation of 30kg.
+  const maxDeviation = 30;
+  const progressPct = Math.round(Math.max(0, Math.min(100, ((maxDeviation - absDiff) / maxDeviation) * 100)));
+
+  const direction: WeightTargetResult["direction"] =
+    absDiff < 0.5 ? "at_ideal" : diff > 0 ? "lose" : "gain";
+
+  return { idealWeightKg: ideal, currentWeightKg, diffKg: diff, progressPct, direction };
 }
 
 /**

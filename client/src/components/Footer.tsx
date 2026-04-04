@@ -1,7 +1,9 @@
 import { Heart, MapPin, Phone, Mail, Facebook, Twitter, Instagram } from "lucide-react";
 import { Link } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Footer() {
+  const { t } = useLanguage();
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="container py-16">
@@ -15,18 +17,18 @@ export default function Footer() {
               <span className="font-bold text-xl text-white">Tech Care</span>
             </div>
             <p className="text-sm text-gray-400">
-              Empowering health through accessible technology and innovation
+              {t.footer_tagline}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-semibold text-white mb-4">Quick Links</h3>
+            <h3 className="font-semibold text-white mb-4">{t.footer_quickLinks}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/find-station">
                   <span className="text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer">
-                    Find Station
+                    {t.nav_findStation}
                   </span>
                 </Link>
               </li>
@@ -56,7 +58,7 @@ export default function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h3 className="font-semibold text-white mb-4">Contact</h3>
+            <h3 className="font-semibold text-white mb-4">{t.footer_contact}</h3>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
                 <Phone className="w-4 h-4 mt-0.5 text-cyan-400 flex-shrink-0" />
@@ -102,7 +104,7 @@ export default function Footer() {
         {/* Divider */}
         <div className="border-t border-gray-800 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-            <p>&copy; 2026 Tech Care. All rights reserved.</p>
+            <p>&copy; 2026 Tech Care. {t.footer_rights}</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-cyan-400 transition-colors">
                 Privacy Policy

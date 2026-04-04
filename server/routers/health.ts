@@ -7,7 +7,8 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getUserReadings, createHealthReading, deleteHealthReading, getUserById } from "../db";
 import { TRPCError } from "@trpc/server";
-import { calculateBmi } from "../../shared/bmi";
+import { calculateBmi, calculateWeightTarget } from "../../shared/bmi";
+import { calculateHealthScore } from "../../shared/healthScore";
 
 export const healthRouter = router({
   /**
@@ -83,13 +84,40 @@ export const healthRouter = router({
       user.gender
     );
 
+    const weightTarget = calculateWeightTarget(
+      parseFloat(reading.weight),
+      parseFloat(reading.height),
+      user.gender
+    );
+
     return {
       status: "ok" as const,
       ...result,
       weight: parseFloat(reading.weight),
       height: parseFloat(reading.height),
       readingDate: reading.recordedAt,
+      weightTarget,
     };
+  }),
+
+  /**
+   * Get the user's overall health score from their most recent reading.
+   */
+  healthScore: protectedProcedure.query(async ({ ctx }) => {
+    const readings = await getUserReadings(ctx.user.id);
+    if (!readings || readings.length === 0) {
+      return { status: "no_readings" as const };
+    }
+    // Use most recent reading
+    const latest = readings[0];
+    const result = calculateHealthScore({
+      bloodPressureSystolic: latest.bloodPressureSystolic,
+      bloodPressureDiastolic: latest.bloodPressureDiastolic,
+      heartRate: latest.heartRate,
+      bmi: latest.bmi ? parseFloat(latest.bmi) : null,
+      temperature: latest.temperature ? parseFloat(latest.temperature) : null,
+    });
+    return { status: "ok" as const, ...result, readingDate: latest.recordedAt };
   }),
 
   /**

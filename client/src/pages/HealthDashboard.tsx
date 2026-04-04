@@ -62,6 +62,7 @@ import {
 } from "recharts";
 import { getLoginUrl } from "@/const";
 import { format } from "date-fns";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface LogFormData {
   kioskId: string;
@@ -102,7 +103,156 @@ function Trend({ values }: { values: (number | null | undefined)[] }) {
   return <Minus className="w-4 h-4 text-gray-400" />;
 }
 
+// ─── Health Score Banner ──────────────────────────────────────────────────
+
+type HealthScoreData =
+  | {
+      status: "ok";
+      score: number;
+      grade: "Excellent" | "Good" | "Fair" | "Poor";
+      gradeColor: string;
+      breakdown: {
+        bloodPressure: number | null;
+        heartRate: number | null;
+        bmi: number | null;
+        temperature: number | null;
+      };
+      readingDate: Date;
+    }
+  | { status: "no_readings" }
+  | undefined;
+
+function HealthScoreBanner({
+  scoreData,
+  scoreLoading,
+}: {
+  scoreData: HealthScoreData;
+  scoreLoading: boolean;
+}) {
+  if (scoreLoading) {
+    return (
+      <Card className="p-6 border-0 shadow-sm">
+        <div className="flex items-center gap-2 text-gray-400">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span>Calculating your health score...</span>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!scoreData || scoreData.status === "no_readings") {
+    return (
+      <Card className="p-6 border-0 shadow-sm bg-blue-50">
+        <div className="flex items-start gap-3">
+          <Activity className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+          <div>
+            <h3 className="font-semibold text-blue-800 mb-1">No Health Score Yet</h3>
+            <p className="text-sm text-blue-700">Log your first reading to get your overall health score.</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  const data = scoreData as Exclude<HealthScoreData, { status: "no_readings" } | undefined>;
+  if (data.status !== "ok") return null;
+
+  const circumference = 2 * Math.PI * 45; // r=45
+  const dashOffset = circumference - (data.score / 100) * circumference;
+
+  const breakdownItems = [
+    { label: "Blood Pressure", value: data.breakdown.bloodPressure, icon: <Activity className="w-4 h-4" /> },
+    { label: "BMI", value: data.breakdown.bmi, icon: <Scale className="w-4 h-4" /> },
+    { label: "Heart Rate", value: data.breakdown.heartRate, icon: <Heart className="w-4 h-4" /> },
+    { label: "Temperature", value: data.breakdown.temperature, icon: <Thermometer className="w-4 h-4" /> },
+  ];
+
+  return (
+    <Card className="p-6 border-0 shadow-sm overflow-hidden">
+      <div className="flex flex-col md:flex-row gap-6 items-center">
+        {/* Circular gauge */}
+        <div className="relative shrink-0">
+          <svg width="120" height="120" viewBox="0 0 100 100">
+            {/* Track */}
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+            {/* Score arc */}
+            <circle
+              cx="50"
+              cy="50"
+              r="45"
+              fill="none"
+              stroke={data.gradeColor}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              transform="rotate(-90 50 50)"
+              style={{ transition: "stroke-dashoffset 0.8s ease" }}
+            />
+            <text x="50" y="46" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#111827">
+              {data.score}
+            </text>
+            <text x="50" y="62" textAnchor="middle" fontSize="10" fill="#6b7280">
+              out of 100
+            </text>
+          </svg>
+        </div>
+
+        {/* Grade + breakdown */}
+        <div className="flex-1 w-full">
+          <div className="flex items-center gap-3 mb-4">
+            <div>
+              <div className="text-xs text-gray-500 uppercase tracking-wide">Overall Health Score</div>
+              <div className="text-2xl font-bold" style={{ color: data.gradeColor }}>
+                {data.grade}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {breakdownItems.map((item) => (
+              <div key={item.label} className="bg-gray-50 rounded-lg p-3">
+                <div className="flex items-center gap-1.5 text-gray-500 mb-1">
+                  {item.icon}
+                  <span className="text-xs">{item.label}</span>
+                </div>
+                {item.value !== null ? (
+                  <>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-1">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${item.value}%`,
+                          backgroundColor:
+                            item.value >= 90 ? "#22c55e" :
+                            item.value >= 75 ? "#06b6d4" :
+                            item.value >= 50 ? "#f97316" : "#ef4444",
+                        }}
+                      />
+                    </div>
+                    <div className="text-xs font-semibold text-gray-700">{item.value}/100</div>
+                  </>
+                ) : (
+                  <div className="text-xs text-gray-400">No data</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 // ─── BMI Comparison Card ───────────────────────────────────────────────────
+
+type WeightTarget = {
+  idealWeightKg: number;
+  currentWeightKg: number;
+  diffKg: number;
+  progressPct: number;
+  direction: "lose" | "gain" | "at_ideal";
+};
 
 type BmiDataOk = {
   status: "ok";
@@ -115,6 +265,7 @@ type BmiDataOk = {
   weight: number;
   height: number;
   readingDate: Date;
+  weightTarget: WeightTarget;
 };
 
 type BmiDataState =
@@ -266,8 +417,46 @@ function BmiComparisonCard({ bmiData, bmiLoading }: { bmiData: BmiDataState; bmi
         </div>
       </div>
 
+      {/* Weight Target Section */}
+      {data.weightTarget && (
+        <div className="mt-5 p-4 bg-gray-50 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+              <Target className="w-4 h-4 text-cyan-500" />
+              Ideal Weight Target
+            </span>
+            <span className="text-sm font-bold text-cyan-600">{data.weightTarget.idealWeightKg} kg</span>
+          </div>
+
+          {/* Progress bar */}
+          <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden mb-2">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${data.weightTarget.progressPct}%`,
+                backgroundColor:
+                  data.weightTarget.direction === "at_ideal" ? "#22c55e" :
+                  data.weightTarget.progressPct >= 70 ? "#06b6d4" :
+                  data.weightTarget.progressPct >= 40 ? "#f97316" : "#ef4444",
+              }}
+            />
+          </div>
+
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-gray-500">
+              {data.weightTarget.direction === "at_ideal"
+                ? "✓ You are at your ideal weight!"
+                : data.weightTarget.direction === "lose"
+                ? `Need to lose ${Math.abs(data.weightTarget.diffKg)} kg`
+                : `Need to gain ${Math.abs(data.weightTarget.diffKg)} kg`}
+            </span>
+            <span className="font-semibold text-gray-600">{data.weightTarget.progressPct}% there</span>
+          </div>
+        </div>
+      )}
+
       {/* Measurement details */}
-      <div className="text-xs text-gray-400 border-t pt-3 flex flex-wrap gap-4">
+      <div className="text-xs text-gray-400 border-t pt-3 mt-4 flex flex-wrap gap-4">
         <span>Weight: <strong className="text-gray-600">{data.weight} kg</strong></span>
         <span>Height: <strong className="text-gray-600">{data.height} cm</strong></span>
         <span>Age: <strong className="text-gray-600">{data.age} yrs</strong></span>
@@ -293,6 +482,11 @@ export default function HealthDashboard() {
   );
 
   const { data: bmiData, isLoading: bmiLoading } = trpc.health.bmiComparison.useQuery(
+    undefined,
+    { enabled: isAuthenticated }
+  );
+
+  const { data: healthScore, isLoading: scoreLoading } = trpc.health.healthScore.useQuery(
     undefined,
     { enabled: isAuthenticated }
   );
@@ -371,6 +565,8 @@ export default function HealthDashboard() {
     );
   }
 
+  const { t } = useLanguage();
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -378,14 +574,12 @@ export default function HealthDashboard() {
         <main className="flex-1 flex items-center justify-center pt-20">
           <div className="text-center max-w-md px-4">
             <Heart className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Track Your Health</h1>
-            <p className="text-gray-600 mb-6">
-              Sign in to view your health history, log new readings, and track your wellness trends over time.
-            </p>
+            <h1 className="text-2xl font-bold mb-2">{t.health_title}</h1>
+            <p className="text-gray-600 mb-6">{t.health_signInPrompt}</p>
             <a href={getLoginUrl()}>
               <Button className="bg-cyan-500 hover:bg-cyan-600">
                 <LogIn className="w-4 h-4 mr-2" />
-                Sign In to Continue
+                {t.health_signInBtn}
               </Button>
             </a>
           </div>
@@ -404,26 +598,29 @@ export default function HealthDashboard() {
         <section className="bg-gradient-to-r from-cyan-600 to-blue-700 text-white py-10">
           <div className="container flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-1">My Health Dashboard</h1>
-              <p className="text-cyan-100">Welcome back, {user?.name?.split(" ")[0]}</p>
+              <h1 className="text-3xl font-bold mb-1">{t.health_title}</h1>
+              <p className="text-cyan-100">{t.health_welcome}, {user?.name?.split(" ")[0]}</p>
             </div>
             <Button
               className="bg-white text-cyan-700 hover:bg-cyan-50"
               onClick={() => setShowLog(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Log Reading
+              {t.health_logReading}
             </Button>
           </div>
         </section>
 
         <div className="container py-8 space-y-8">
+          {/* Health Score Banner */}
+          <HealthScoreBanner scoreData={healthScore} scoreLoading={scoreLoading} />
+
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               {
                 icon: <Activity className="w-5 h-5 text-red-500" />,
-                label: "Blood Pressure",
+                label: t.health_bpLabel,
                 value: latest?.bloodPressureSystolic
                   ? `${latest.bloodPressureSystolic}/${latest.bloodPressureDiastolic}`
                   : "—",
@@ -432,21 +629,21 @@ export default function HealthDashboard() {
               },
               {
                 icon: <Heart className="w-5 h-5 text-pink-500" />,
-                label: "Heart Rate",
+                label: t.health_hrLabel,
                 value: latest?.heartRate ?? "—",
                 unit: "bpm",
                 trend: <Trend values={hrValues} />,
               },
               {
                 icon: <Scale className="w-5 h-5 text-blue-500" />,
-                label: "Weight",
+                label: t.health_weightLabel,
                 value: latest?.weight ? parseFloat(latest.weight).toFixed(1) : "—",
                 unit: "kg",
                 trend: <Trend values={weightValues} />,
               },
               {
                 icon: <Thermometer className="w-5 h-5 text-orange-500" />,
-                label: "BMI",
+                label: t.health_bmiLabel,
                 value: latest?.bmi ? parseFloat(latest.bmi).toFixed(1) : "—",
                 unit: "",
                 trend: <Trend values={bmiValues} />,
@@ -472,7 +669,7 @@ export default function HealthDashboard() {
           {chartData.length > 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-5 border-0 shadow-sm">
-                <h3 className="font-semibold text-gray-800 mb-4">Blood Pressure Trend</h3>
+                <h3 className="font-semibold text-gray-800 mb-4">{t.health_bpTrend}</h3>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -487,7 +684,7 @@ export default function HealthDashboard() {
               </Card>
 
               <Card className="p-5 border-0 shadow-sm">
-                <h3 className="font-semibold text-gray-800 mb-4">Heart Rate & Weight</h3>
+                <h3 className="font-semibold text-gray-800 mb-4">{t.health_hrWeight}</h3>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -508,7 +705,7 @@ export default function HealthDashboard() {
 
           {/* Readings History */}
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Reading History</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">{t.health_history}</h2>
             {readingsLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 text-cyan-500 animate-spin" />
@@ -516,13 +713,13 @@ export default function HealthDashboard() {
             ) : !readings || readings.length === 0 ? (
               <Card className="p-10 border-0 shadow-sm text-center">
                 <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 mb-4">No readings logged yet.</p>
+                <p className="text-gray-500 mb-4">{t.health_noReadings}</p>
                 <Button
                   className="bg-cyan-500 hover:bg-cyan-600"
                   onClick={() => setShowLog(true)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Log Your First Reading
+                  {t.health_logReading}
                 </Button>
               </Card>
             ) : (

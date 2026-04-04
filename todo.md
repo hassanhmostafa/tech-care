@@ -41,3 +41,8 @@
 - [x] Add BMI comparison UI component to health dashboard
 - [x] Add test height/weight data to seed for BMI demo
 - [x] Write vitest tests for BMI calculation
+
+## New Features - Round 3
+- [x] Ideal weight target with kg to lose/gain and progress bar on health dashboard
+- [x] Health score summary (0-100) combining BP, HR, BMI, temperature
+- [x] Arabic/English language toggle with full RTL layout support
