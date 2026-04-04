@@ -41,9 +41,11 @@ export default function KioskMap({ kiosks, selectedKiosk }: KioskMapProps) {
 
     // Add new markers
     kioskList.forEach((kiosk) => {
+      const lat = typeof kiosk.latitude === 'string' ? parseFloat(kiosk.latitude) : kiosk.latitude;
+      const lng = typeof kiosk.longitude === 'string' ? parseFloat(kiosk.longitude) : kiosk.longitude;
       const marker = new window.google.maps.marker.AdvancedMarkerElement({
         map,
-        position: { lat: kiosk.latitude, lng: kiosk.longitude },
+        position: { lat, lng },
         title: kiosk.name,
       }) as MarkerWithInfo;
 
@@ -56,7 +58,7 @@ export default function KioskMap({ kiosks, selectedKiosk }: KioskMapProps) {
             <p style="margin: 0 0 8px 0; font-size: 13px; color: #9ca3af;">${kiosk.address}</p>
             <div style="margin: 8px 0; padding: 8px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;">
               <p style="margin: 4px 0; font-size: 13px; color: #6b7280;">
-                <strong>Hours:</strong> ${kiosk.hours[0]?.open} - ${kiosk.hours[0]?.close}
+                <strong>Hours:</strong> ${kiosk.hours?.[0]?.open ?? 'N/A'} - ${kiosk.hours?.[0]?.close ?? 'N/A'}
               </p>
               <p style="margin: 4px 0; font-size: 13px; color: #6b7280;">
                 <strong>Distance:</strong> ${kiosk.distance?.toFixed(1)} km
@@ -99,13 +101,17 @@ export default function KioskMap({ kiosks, selectedKiosk }: KioskMapProps) {
   // Pan to selected kiosk
   useEffect(() => {
     if (selectedKiosk && mapRef.current) {
-      mapRef.current.panTo({ lat: selectedKiosk.latitude, lng: selectedKiosk.longitude });
+      const panLat = typeof selectedKiosk.latitude === 'string' ? parseFloat(selectedKiosk.latitude) : selectedKiosk.latitude;
+      const panLng = typeof selectedKiosk.longitude === 'string' ? parseFloat(selectedKiosk.longitude) : selectedKiosk.longitude;
+      mapRef.current.panTo({ lat: panLat, lng: panLng });
       mapRef.current.setZoom(14);
 
       // Open info window for selected marker
+      const selLat = typeof selectedKiosk.latitude === 'string' ? parseFloat(selectedKiosk.latitude) : selectedKiosk.latitude;
+      const selLng = typeof selectedKiosk.longitude === 'string' ? parseFloat(selectedKiosk.longitude) : selectedKiosk.longitude;
       const marker = markersRef.current.find((m) => {
         const pos = m.position as any;
-        return Math.abs(pos.lat - selectedKiosk.latitude) < 0.0001 && Math.abs(pos.lng - selectedKiosk.longitude) < 0.0001;
+        return Math.abs(pos.lat - selLat) < 0.0001 && Math.abs(pos.lng - selLng) < 0.0001;
       });
 
       if (marker && marker.infoWindow) {

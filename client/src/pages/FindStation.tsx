@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Clock, Phone, Star, Search } from "lucide-react";
+import { MapPin, Clock, Phone, Star, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,39 +7,45 @@ import { Link } from "wouter";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import KioskMap from "@/components/KioskMap";
-import { JEDDAH_KIOSKS, Kiosk, calculateDistance } from "@/lib/kiosks";
+import { Kiosk, calculateDistance } from "@/lib/kiosks";
+import { trpc } from "@/lib/trpc";
 
 export default function FindStation() {
-  const [kiosks, setKiosks] = useState<Kiosk[]>(JEDDAH_KIOSKS);
-  const [selectedKiosk, setSelectedKiosk] = useState<Kiosk | null>(JEDDAH_KIOSKS[0]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [selectedKiosk, setSelectedKiosk] = useState<Kiosk | null>(null);
+  // Simulate user location (Jeddah center) — replace with navigator.geolocation for real use
+  const userLocation = { lat: 21.5433, lng: 39.1726 };
 
-  // Simulate user location (Jeddah center)
+  // Debounce search input
   useEffect(() => {
-    setUserLocation({ lat: 21.5433, lng: 39.1726 });
-  }, []);
-
-  // Filter kiosks based on search
-  useEffect(() => {
-    if (!searchQuery) {
-      setKiosks(JEDDAH_KIOSKS);
-    } else {
-      const filtered = JEDDAH_KIOSKS.filter(
-        (kiosk) =>
-          kiosk.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          kiosk.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          kiosk.address.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setKiosks(filtered);
-    }
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 400);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Calculate distances
-  const kioskWithDistances = kiosks.map((kiosk) => ({
-    ...kiosk,
-    distance: userLocation ? calculateDistance(userLocation.lat, userLocation.lng, kiosk.latitude, kiosk.longitude) : 0,
+  // Fetch from API — switches between list and search automatically
+  const { data: rawKiosks, isLoading, error } = trpc.kiosks.search.useQuery(
+    { query: debouncedQuery },
+    { staleTime: 30_000 }
+  );
+
+  // Attach computed distance to each kiosk
+  const kiosks: Kiosk[] = (rawKiosks ?? []).map((k) => ({
+    ...k,
+    distance: calculateDistance(
+      userLocation.lat,
+      userLocation.lng,
+      parseFloat(k.latitude),
+      parseFloat(k.longitude)
+    ),
   }));
+
+  // Auto-select first kiosk when data loads
+  useEffect(() => {
+    if (kiosks.length > 0 && !selectedKiosk) {
+      setSelectedKiosk(kiosks[0]);
+    }
+  }, [kiosks.length]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -79,19 +85,33 @@ export default function FindStation() {
               {/* Map */}
               <div className="lg:col-span-2">
                 <Card className="overflow-hidden border-0 shadow-lg h-[600px]">
-                  <KioskMap kiosks={kioskWithDistances} selectedKiosk={selectedKiosk} />
+                  <KioskMap kiosks={kiosks} selectedKiosk={selectedKiosk} />
                 </Card>
               </div>
 
               {/* Station List */}
               <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {kioskWithDistances.length === 0 ? (
+                {isLoading && (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+                  </div>
+                )}
+
+                {error && (
+                  <Card className="p-8 text-center">
+                    <p className="text-red-500">Failed to load stations. Please try again.</p>
+                  </Card>
+                )}
+
+                {!isLoading && !error && kiosks.length === 0 && (
                   <Card className="p-8 text-center">
                     <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-600">No stations found matching your search</p>
                   </Card>
-                ) : (
-                  kioskWithDistances.map((kiosk) => (
+                )}
+
+                {!isLoading &&
+                  kiosks.map((kiosk) => (
                     <Card
                       key={kiosk.id}
                       className={`p-4 cursor-pointer transition-all border-2 ${
@@ -112,18 +132,22 @@ export default function FindStation() {
                             <MapPin className="w-4 h-4" />
                             <span>{kiosk.distance?.toFixed(1)} km away</span>
                           </div>
-                          <div className="flex items-center gap-1 text-yellow-500">
-                            <Star className="w-4 h-4 fill-current" />
-                            <span className="text-gray-700">{kiosk.rating}</span>
-                          </div>
+                          {kiosk.rating && (
+                            <div className="flex items-center gap-1 text-yellow-500">
+                              <Star className="w-4 h-4 fill-current" />
+                              <span className="text-gray-700">{kiosk.rating}</span>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            {kiosk.hours[0]?.open} - {kiosk.hours[0]?.close}
-                          </span>
-                        </div>
+                        {kiosk.hours && kiosk.hours.length > 0 && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {kiosk.hours[0].open} - {kiosk.hours[0].close}
+                            </span>
+                          </div>
+                        )}
 
                         <Link href={`/station/${kiosk.id}`}>
                           <Button size="sm" className="w-full bg-cyan-500 hover:bg-cyan-600 text-white">
@@ -132,8 +156,7 @@ export default function FindStation() {
                         </Link>
                       </div>
                     </Card>
-                  ))
-                )}
+                  ))}
               </div>
             </div>
           </div>
