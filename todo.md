@@ -83,3 +83,7 @@
 - [x] Restrict create/delete kiosk to admin only in UI
 - [x] Update navigation: show My Kiosks link for kiosk_owner role
 - [x] Write vitest tests for role guards (19 new tests, 50 total passing)
+
+## Hours Editor Fix
+- [x] Replace 24-hour time inputs with 12-hour AM/PM selectors in MyKiosks HoursEditor
+- [x] Replace 24-hour time inputs with 12-hour AM/PM selectors in Admin panel HoursEditor

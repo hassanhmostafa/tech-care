@@ -51,6 +51,7 @@ import {
   Users,
   Building2,
 } from "lucide-react";
+import { TimeSelect } from "@/components/TimeSelect";
 import { Link } from "wouter";
 
 interface HourEntry {
@@ -240,7 +241,7 @@ export default function Admin() {
     const nextDay = DEFAULT_DAYS.find((d) => !usedDays.includes(d)) ?? "Sunday";
     setFormData((p) => ({
       ...p,
-      hours: [...p.hours, { day: nextDay, open: "09:00", close: "21:00" }],
+      hours: [...p.hours, { day: nextDay, open: "9:00 AM", close: "9:00 PM" }],
     }));
   };
 
@@ -686,19 +687,9 @@ export default function Admin() {
                           <option key={d} value={d}>{d}</option>
                         ))}
                       </select>
-                      <input
-                        type="time"
-                        value={row.open}
-                        onChange={(e) => updateHourRow(idx, "open", e.target.value)}
-                        className="border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                      />
+                      <TimeSelect value={row.open} onChange={(v) => updateHourRow(idx, "open", v)} />
                       <span className="text-gray-400 text-sm">–</span>
-                      <input
-                        type="time"
-                        value={row.close}
-                        onChange={(e) => updateHourRow(idx, "close", e.target.value)}
-                        className="border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                      />
+                      <TimeSelect value={row.close} onChange={(v) => updateHourRow(idx, "close", v)} />
                       <Button
                         type="button"
                         size="sm"

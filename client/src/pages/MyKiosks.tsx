@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { MapPin, Clock, Stethoscope, Phone, Mail, Edit, Plus, Trash2, Building2, AlertCircle } from "lucide-react";
+import { TimeSelect } from "@/components/TimeSelect";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 
@@ -27,7 +28,7 @@ function HoursEditor({
   value: HoursRow[];
   onChange: (v: HoursRow[]) => void;
 }) {
-  const addRow = () => onChange([...value, { day: "Monday", open: "09:00", close: "17:00" }]);
+  const addRow = () => onChange([...value, { day: "Monday", open: "9:00 AM", close: "5:00 PM" }]);
   const removeRow = (i: number) => onChange(value.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: keyof HoursRow, val: string) => {
     const updated = [...value];
@@ -49,9 +50,9 @@ function HoursEditor({
               ))}
             </SelectContent>
           </Select>
-          <Input type="time" value={row.open} onChange={(e) => updateRow(i, "open", e.target.value)} className="w-28" />
-          <span className="text-gray-400">–</span>
-          <Input type="time" value={row.close} onChange={(e) => updateRow(i, "close", e.target.value)} className="w-28" />
+          <TimeSelect value={row.open} onChange={(v) => updateRow(i, "open", v)} />
+          <span className="text-gray-400 text-sm">–</span>
+          <TimeSelect value={row.close} onChange={(v) => updateRow(i, "close", v)} />
           <Button variant="ghost" size="icon" onClick={() => removeRow(i)} className="text-red-400 hover:text-red-600">
             <Trash2 className="w-4 h-4" />
           </Button>
