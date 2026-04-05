@@ -225,6 +225,38 @@ export async function deleteKiosk(id: string) {
   await db.delete(kiosks).where(eq(kiosks.id, id));
 }
 
+/**
+ * Get all kiosks owned by a specific user.
+ */
+export async function getKiosksByOwnerId(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kiosks).where(eq(kiosks.ownerId, ownerId));
+}
+
+/**
+ * Get all users (for admin owner assignment dropdown).
+ */
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+  }).from(users).orderBy(users.name);
+}
+
+/**
+ * Update a user's role.
+ */
+export async function updateUserRole(userId: number, role: "user" | "kiosk_owner" | "admin") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId));
+}
+
 // ─────────────────────────────────────────────
 // Health readings helpers
 // ─────────────────────────────────────────────

@@ -16,7 +16,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "kiosk_owner", "admin"]).default("user").notNull(),
   /** User's gender, chosen during profile setup. Used for BMI calculations. */
   gender: mysqlEnum("gender", ["male", "female"]),
   /** User's date of birth (stored as a date string YYYY-MM-DD). Used to compute age for BMI. */
@@ -57,6 +57,11 @@ export const kiosks = mysqlTable("kiosks", {
    * ["Blood Pressure", "Weight & BMI", ...]
    */
   services: json("services").$type<string[]>(),
+  /**
+   * Optional FK to the user who owns/manages this kiosk.
+   * Set by admin. The owner can edit this kiosk but cannot create or delete kiosks.
+   */
+  ownerId: int("ownerId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles } from "lucide-react";
+import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -46,6 +46,18 @@ export default function Navigation() {
               </span>
             </Link>
           ))}
+          {(user?.role === "kiosk_owner" || user?.role === "admin") && (
+            <Link href="/my-kiosks">
+              <span
+                className={`transition-colors cursor-pointer font-medium flex items-center gap-1 ${
+                  location === "/my-kiosks" ? "text-cyan-600" : "text-gray-700 hover:text-cyan-600"
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                {language === "ar" ? "كشكاتي" : "My Kiosks"}
+              </span>
+            </Link>
+          )}
           {user?.role === "admin" && (
             <Link href="/admin">
               <span
@@ -138,6 +150,17 @@ export default function Navigation() {
                 </div>
               </Link>
             ))}
+            {(user?.role === "kiosk_owner" || user?.role === "admin") && (
+              <Link href="/my-kiosks">
+                <div
+                  className="text-gray-700 hover:text-cyan-600 py-2 cursor-pointer font-medium flex items-center gap-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Building2 className="w-4 h-4" />
+                  {language === "ar" ? "كشكاتي" : "My Kiosks"}
+                </div>
+              </Link>
+            )}
             {user?.role === "admin" && (
               <Link href="/admin">
                 <div

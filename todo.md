@@ -70,3 +70,16 @@
 - [x] Add plan history (save generated plans to DB)
 - [x] Wire navigation link to AI Plan page
 - [x] Write vitest tests for AI plan procedure
+
+## Three-Tier Role System (user / kiosk_owner / admin)
+- [x] Add kiosk_owner to users role enum in schema
+- [x] Add ownerId (FK → users.id, nullable) to kiosks table
+- [x] Run DB migration
+- [x] Add ownerProcedure role guard on server (kiosk_owner or admin)
+- [x] Add assignKioskOwner procedure to admin router
+- [x] Add ownerUpdateKiosk procedure (only owner of that kiosk can edit)
+- [x] Build Kiosk Owner dashboard page (/my-kiosks)
+- [x] Update Admin panel with owner assignment UI (dropdown of users)
+- [x] Restrict create/delete kiosk to admin only in UI
+- [x] Update navigation: show My Kiosks link for kiosk_owner role
+- [x] Write vitest tests for role guards (19 new tests, 50 total passing)

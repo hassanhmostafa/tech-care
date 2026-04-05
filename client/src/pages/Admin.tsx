@@ -24,6 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -40,6 +47,9 @@ import {
   Clock,
   X,
   Stethoscope,
+  UserCog,
+  Users,
+  Building2,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -79,19 +89,28 @@ const emptyForm: KioskFormData = {
   services: [],
 };
 
+type Tab = "kiosks" | "users";
+
 export default function Admin() {
   const { user, isAuthenticated, loading } = useAuth();
   const utils = trpc.useUtils();
 
+  const [activeTab, setActiveTab] = useState<Tab>("kiosks");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<KioskFormData>(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  // Service input state
   const [serviceInput, setServiceInput] = useState("");
 
+  // Owner assignment dialog state
+  const [assigningKiosk, setAssigningKiosk] = useState<{ id: string; name: string; ownerId: number | null } | null>(null);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string>("none");
+
   const { data: kiosks, isLoading } = trpc.admin.listKiosks.useQuery(undefined, {
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+
+  const { data: allUsers, isLoading: usersLoading } = trpc.admin.listUsers.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
   });
 
@@ -135,6 +154,24 @@ export default function Admin() {
       utils.kiosks.list.invalidate();
       setDeleteId(null);
       toast.success("Kiosk deleted");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const assignOwnerMutation = trpc.admin.assignKioskOwner.useMutation({
+    onSuccess: () => {
+      utils.admin.listKiosks.invalidate();
+      utils.admin.listUsers.invalidate();
+      setAssigningKiosk(null);
+      toast.success("Owner assigned successfully");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateUserRoleMutation = trpc.admin.updateUserRole.useMutation({
+    onSuccess: () => {
+      utils.admin.listUsers.invalidate();
+      toast.success("User role updated");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -186,6 +223,17 @@ export default function Admin() {
     setServiceInput("");
   };
 
+  const openAssignOwner = (kiosk: any) => {
+    setAssigningKiosk({ id: kiosk.id, name: kiosk.name, ownerId: kiosk.ownerId });
+    setSelectedOwnerId(kiosk.ownerId ? String(kiosk.ownerId) : "none");
+  };
+
+  const handleAssignOwner = () => {
+    if (!assigningKiosk) return;
+    const ownerId = selectedOwnerId === "none" ? null : parseInt(selectedOwnerId, 10);
+    assignOwnerMutation.mutate({ kioskId: assigningKiosk.id, ownerId });
+  };
+
   // ── Hours helpers ────────────────────────────────────────────────────────────
   const addHourRow = () => {
     const usedDays = formData.hours.map((h) => h.day);
@@ -225,6 +273,13 @@ export default function Admin() {
   };
 
   const isBusy = createMutation.isPending || updateMutation.isPending;
+
+  // Helper: get owner name for a kiosk
+  const getOwnerName = (ownerId: number | null) => {
+    if (!ownerId || !allUsers) return null;
+    const u = allUsers.find((u) => u.id === ownerId);
+    return u ? (u.name || u.email || `User #${u.id}`) : `User #${ownerId}`;
+  };
 
   // ── Auth guard ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -267,135 +322,297 @@ export default function Admin() {
           <div className="container flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-1">Admin Panel</h1>
-              <p className="text-slate-300">Manage Tech Care kiosk locations</p>
+              <p className="text-slate-300">Manage Tech Care kiosk locations and users</p>
             </div>
-            <Button
-              className="bg-cyan-500 hover:bg-cyan-600"
-              onClick={() => { setEditingId(null); setFormData(emptyForm); setServiceInput(""); setShowForm(true); }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Kiosk
-            </Button>
-          </div>
-        </section>
-
-        {/* Stats bar */}
-        <section className="bg-white border-b border-gray-200 py-4">
-          <div className="container flex gap-8 text-sm">
-            <div>
-              <span className="font-semibold text-gray-900">{kiosks?.length ?? 0}</span>
-              <span className="text-gray-500 ml-1">Total Kiosks</span>
-            </div>
-            <div>
-              <span className="font-semibold text-green-600">
-                {kiosks?.filter((k) => k.isActive === "true").length ?? 0}
-              </span>
-              <span className="text-gray-500 ml-1">Active</span>
-            </div>
-            <div>
-              <span className="font-semibold text-red-500">
-                {kiosks?.filter((k) => k.isActive === "false").length ?? 0}
-              </span>
-              <span className="text-gray-500 ml-1">Inactive</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Kiosk Table */}
-        <section className="py-8">
-          <div className="container">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {kiosks?.map((kiosk) => (
-                  <Card key={kiosk.id} className="p-5 border-0 shadow-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-semibold text-gray-900 truncate">{kiosk.name}</h3>
-                          <Badge
-                            variant={kiosk.isActive === "true" ? "default" : "secondary"}
-                            className={kiosk.isActive === "true" ? "bg-green-100 text-green-700 hover:bg-green-100" : ""}
-                          >
-                            {kiosk.isActive === "true" ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            {kiosk.address}
-                          </span>
-                          {kiosk.phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="w-3.5 h-3.5" />
-                              {kiosk.phone}
-                            </span>
-                          )}
-                          {kiosk.email && (
-                            <span className="flex items-center gap-1">
-                              <Mail className="w-3.5 h-3.5" />
-                              {kiosk.email}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {Array.isArray(kiosk.services) && kiosk.services.slice(0, 4).map((s: string) => (
-                            <span key={s} className="text-xs bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">{s}</span>
-                          ))}
-                          {Array.isArray(kiosk.services) && kiosk.services.length > 4 && (
-                            <span className="text-xs text-gray-400">+{kiosk.services.length - 4} more</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {kiosk.latitude}, {kiosk.longitude} · Rating: {kiosk.rating ?? "N/A"} ·{" "}
-                          {Array.isArray(kiosk.hours) ? kiosk.hours.length : 0} hour entries
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            toggleMutation.mutate({
-                              id: kiosk.id,
-                              isActive: kiosk.isActive === "true" ? "false" : "true",
-                            })
-                          }
-                          disabled={toggleMutation.isPending}
-                          title={kiosk.isActive === "true" ? "Deactivate" : "Activate"}
-                        >
-                          {kiosk.isActive === "true" ? (
-                            <ToggleRight className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <ToggleLeft className="w-4 h-4 text-gray-400" />
-                          )}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(kiosk)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-500 hover:text-red-600 hover:border-red-300"
-                          onClick={() => setDeleteId(kiosk.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+            {activeTab === "kiosks" && (
+              <Button
+                className="bg-cyan-500 hover:bg-cyan-600"
+                onClick={() => { setEditingId(null); setFormData(emptyForm); setServiceInput(""); setShowForm(true); }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Kiosk
+              </Button>
             )}
           </div>
         </section>
+
+        {/* Tab Navigation */}
+        <section className="bg-white border-b border-gray-200">
+          <div className="container flex gap-0">
+            <button
+              onClick={() => setActiveTab("kiosks")}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "kiosks"
+                  ? "border-cyan-500 text-cyan-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Kiosks ({kiosks?.length ?? 0})
+            </button>
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "users"
+                  ? "border-cyan-500 text-cyan-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Users ({allUsers?.length ?? 0})
+            </button>
+          </div>
+        </section>
+
+        {/* Stats bar (kiosks tab only) */}
+        {activeTab === "kiosks" && (
+          <section className="bg-white border-b border-gray-200 py-4">
+            <div className="container flex gap-8 text-sm">
+              <div>
+                <span className="font-semibold text-gray-900">{kiosks?.length ?? 0}</span>
+                <span className="text-gray-500 ml-1">Total Kiosks</span>
+              </div>
+              <div>
+                <span className="font-semibold text-green-600">
+                  {kiosks?.filter((k) => k.isActive === "true").length ?? 0}
+                </span>
+                <span className="text-gray-500 ml-1">Active</span>
+              </div>
+              <div>
+                <span className="font-semibold text-red-500">
+                  {kiosks?.filter((k) => k.isActive === "false").length ?? 0}
+                </span>
+                <span className="text-gray-500 ml-1">Inactive</span>
+              </div>
+              <div>
+                <span className="font-semibold text-cyan-600">
+                  {kiosks?.filter((k) => k.ownerId !== null).length ?? 0}
+                </span>
+                <span className="text-gray-500 ml-1">With Owner</span>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── Kiosks Tab ── */}
+        {activeTab === "kiosks" && (
+          <section className="py-8">
+            <div className="container">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {kiosks?.map((kiosk) => (
+                    <Card key={kiosk.id} className="p-5 border-0 shadow-sm">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1 flex-wrap">
+                            <h3 className="font-semibold text-gray-900 truncate">{kiosk.name}</h3>
+                            <Badge
+                              variant={kiosk.isActive === "true" ? "default" : "secondary"}
+                              className={kiosk.isActive === "true" ? "bg-green-100 text-green-700 border-green-200" : ""}
+                            >
+                              {kiosk.isActive === "true" ? "Active" : "Inactive"}
+                            </Badge>
+                            {kiosk.ownerId && (
+                              <Badge variant="outline" className="text-cyan-600 border-cyan-200 bg-cyan-50 flex items-center gap-1">
+                                <UserCog className="w-3 h-3" />
+                                {getOwnerName(kiosk.ownerId)}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {kiosk.address}
+                            </span>
+                            {kiosk.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="w-3.5 h-3.5" />
+                                {kiosk.phone}
+                              </span>
+                            )}
+                            {kiosk.email && (
+                              <span className="flex items-center gap-1">
+                                <Mail className="w-3.5 h-3.5" />
+                                {kiosk.email}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {Array.isArray(kiosk.services) && kiosk.services.slice(0, 4).map((s: string) => (
+                              <span key={s} className="text-xs bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">{s}</span>
+                            ))}
+                            {Array.isArray(kiosk.services) && kiosk.services.length > 4 && (
+                              <span className="text-xs text-gray-400">+{kiosk.services.length - 4} more</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {kiosk.latitude}, {kiosk.longitude} · Rating: {kiosk.rating ?? "N/A"} ·{" "}
+                            {Array.isArray(kiosk.hours) ? kiosk.hours.length : 0} hour entries
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openAssignOwner(kiosk)}
+                            title="Assign Owner"
+                            className="text-cyan-600 hover:text-cyan-700 hover:border-cyan-300"
+                          >
+                            <UserCog className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              toggleMutation.mutate({
+                                id: kiosk.id,
+                                isActive: kiosk.isActive === "true" ? "false" : "true",
+                              })
+                            }
+                            disabled={toggleMutation.isPending}
+                            title={kiosk.isActive === "true" ? "Deactivate" : "Activate"}
+                          >
+                            {kiosk.isActive === "true" ? (
+                              <ToggleRight className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <ToggleLeft className="w-4 h-4 text-gray-400" />
+                            )}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(kiosk)}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-500 hover:text-red-600 hover:border-red-300"
+                            onClick={() => setDeleteId(kiosk.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Users Tab ── */}
+        {activeTab === "users" && (
+          <section className="py-8">
+            <div className="container">
+              {usersLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {allUsers?.map((u) => (
+                    <Card key={u.id} className="p-4 border-0 shadow-sm">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900">{u.name || "(No name)"}</p>
+                          <p className="text-sm text-gray-500">{u.email || "(No email)"}</p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={
+                              u.role === "admin"
+                                ? "border-red-200 text-red-600 bg-red-50"
+                                : u.role === "kiosk_owner"
+                                ? "border-cyan-200 text-cyan-600 bg-cyan-50"
+                                : "border-gray-200 text-gray-600"
+                            }
+                          >
+                            {u.role}
+                          </Badge>
+                          <Select
+                            value={u.role}
+                            onValueChange={(role) =>
+                              updateUserRoleMutation.mutate({
+                                userId: u.id,
+                                role: role as "user" | "kiosk_owner" | "admin",
+                              })
+                            }
+                            disabled={updateUserRoleMutation.isPending}
+                          >
+                            <SelectTrigger className="w-36 h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">user</SelectItem>
+                              <SelectItem value="kiosk_owner">kiosk_owner</SelectItem>
+                              <SelectItem value="admin">admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </main>
 
       <Footer />
+
+      {/* ── Assign Owner Dialog ──────────────────────────────────────────────── */}
+      <Dialog open={!!assigningKiosk} onOpenChange={(open) => !open && setAssigningKiosk(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCog className="w-5 h-5 text-cyan-500" />
+              Assign Kiosk Owner
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm text-gray-600">
+              Kiosk: <span className="font-semibold">{assigningKiosk?.name}</span>
+            </p>
+            <div className="space-y-2">
+              <Label>Select Owner</Label>
+              <Select value={selectedOwnerId} onValueChange={setSelectedOwnerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a user..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— No owner (unassign) —</SelectItem>
+                  {allUsers?.map((u) => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.name || u.email || `User #${u.id}`}
+                      {u.role === "admin" ? " (admin)" : u.role === "kiosk_owner" ? " (owner)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-400">
+                Assigning a user will automatically promote them to the "kiosk_owner" role.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssigningKiosk(null)}>Cancel</Button>
+            <Button
+              className="bg-cyan-500 hover:bg-cyan-600"
+              onClick={handleAssignOwner}
+              disabled={assignOwnerMutation.isPending}
+            >
+              {assignOwnerMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Assign Owner
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Create / Edit Dialog ─────────────────────────────────────────────── */}
       <Dialog open={showForm} onOpenChange={(open) => !open && handleCloseForm()}>

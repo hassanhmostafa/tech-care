@@ -36,6 +36,13 @@
       "when": 1775398973925,
       "tag": "0004_pale_jackpot",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1775406226021,
+      "tag": "0005_shallow_talisman",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,8 @@ import {
   updateKiosk,
   deleteKiosk,
   deactivateKiosk,
+  getAllUsers,
+  updateUserRole,
 } from "../db";
 import { nanoid } from "nanoid";
 
@@ -79,13 +81,49 @@ export const adminRouter = router({
     }),
 
   /**
-   * Permanently delete a kiosk.
+   * Permanently delete a kiosk by ID.
    * Frontend: trpc.admin.deleteKiosk.useMutation()
    */
   deleteKiosk: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       await deleteKiosk(input.id);
+      return { success: true };
+    }),
+
+  /**
+   * List all registered users (for owner assignment dropdown).
+   * Frontend: trpc.admin.listUsers.useQuery()
+   */
+  listUsers: adminProcedure.query(async () => {
+    return getAllUsers();
+  }),
+
+  /**
+   * Assign a kiosk owner: sets kiosk.ownerId and promotes user to kiosk_owner role.
+   * Pass ownerId = null to unassign.
+   * Frontend: trpc.admin.assignKioskOwner.useMutation()
+   */
+  assignKioskOwner: adminProcedure
+    .input(z.object({ kioskId: z.string(), ownerId: z.number().nullable() }))
+    .mutation(async ({ input }) => {
+      // Update kiosk ownership
+      await updateKiosk(input.kioskId, { ownerId: input.ownerId ?? undefined });
+      // Promote user to kiosk_owner if assigning, or demote to user if unassigning
+      if (input.ownerId !== null) {
+        await updateUserRole(input.ownerId, "kiosk_owner");
+      }
+      return { success: true };
+    }),
+
+  /**
+   * Update a user's role directly.
+   * Frontend: trpc.admin.updateUserRole.useMutation()
+   */
+  updateUserRole: adminProcedure
+    .input(z.object({ userId: z.number(), role: z.enum(["user", "kiosk_owner", "admin"]) }))
+    .mutation(async ({ input }) => {
+      await updateUserRole(input.userId, input.role);
       return { success: true };
     }),
 });
