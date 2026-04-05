@@ -62,3 +62,11 @@
 
 ## Layout Adjustments
 - [x] Swap Charts and BMI Comparison sections so Charts appear directly above Reading History
+
+## AI Health & Diet Plan Feature
+- [x] Create AI plan tRPC procedure that reads user health data and calls LLM
+- [x] Build AI Health Plan page with plan type selector (health/diet/combined)
+- [x] Display AI-generated plan with markdown rendering
+- [x] Add plan history (save generated plans to DB)
+- [x] Wire navigation link to AI Plan page
+- [x] Write vitest tests for AI plan procedure

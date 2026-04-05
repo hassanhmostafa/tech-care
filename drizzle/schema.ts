@@ -95,3 +95,22 @@ export const healthReadings = mysqlTable("health_readings", {
 
 export type HealthReading = typeof healthReadings.$inferSelect;
 export type InsertHealthReading = typeof healthReadings.$inferInsert;
+
+/**
+ * AI-generated health and diet plans.
+ * Each row stores a plan generated for a user based on their health metrics.
+ */
+export const aiPlans = mysqlTable("ai_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  /** Type of plan: 'health', 'diet', or 'combined' */
+  planType: mysqlEnum("planType", ["health", "diet", "combined"]).notNull(),
+  /** The full AI-generated plan content in Markdown */
+  content: text("content").notNull(),
+  /** Snapshot of key metrics used to generate this plan */
+  metricsSnapshot: json("metricsSnapshot").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AiPlan = typeof aiPlans.$inferSelect;
+export type InsertAiPlan = typeof aiPlans.$inferInsert;

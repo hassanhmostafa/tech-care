@@ -10,6 +10,7 @@ import StationDetail from "./pages/StationDetail";
 import Admin from "./pages/Admin";
 import HealthDashboard from "./pages/HealthDashboard";
 import Profile from "./pages/Profile";
+import AiPlan from "./pages/AiPlan";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -21,6 +22,7 @@ function Router() {
       <Route path={"/admin"} component={Admin} />
       <Route path={"/health"} component={HealthDashboard} />
       <Route path={"/profile"} component={Profile} />
+      <Route path={"/ai-plan"} component={AiPlan} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

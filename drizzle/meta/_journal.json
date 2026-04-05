@@ -29,6 +29,13 @@
       "when": 1775326720098,
       "tag": "0003_famous_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1775398973925,
+      "tag": "0004_pale_jackpot",
+      "breakpoints": true
     }
   ]
 }

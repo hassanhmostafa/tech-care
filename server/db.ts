@@ -1,6 +1,6 @@
 import { eq, like, or, desc, and, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, kiosks, InsertKiosk, healthReadings, InsertHealthReading } from "../drizzle/schema";
+import { InsertUser, users, kiosks, InsertKiosk, healthReadings, InsertHealthReading, aiPlans, InsertAiPlan } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -308,4 +308,46 @@ export async function deleteHealthReading(id: number, userId: number) {
   await db
     .delete(healthReadings)
     .where(eq(healthReadings.id, id));
+}
+
+// ─────────────────────────────────────────────
+// AI Plans helpers
+// ─────────────────────────────────────────────
+
+/**
+ * Save a newly generated AI plan for a user.
+ */
+export async function createAiPlan(data: InsertAiPlan) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(aiPlans).values(data);
+  const result = await db
+    .select()
+    .from(aiPlans)
+    .where(eq(aiPlans.userId, data.userId))
+    .orderBy(desc(aiPlans.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+/**
+ * Get all AI plans for a user, newest first.
+ */
+export async function getUserAiPlans(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(aiPlans)
+    .where(eq(aiPlans.userId, userId))
+    .orderBy(desc(aiPlans.createdAt));
+}
+
+/**
+ * Delete an AI plan by ID (user must own it).
+ */
+export async function deleteAiPlan(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(aiPlans).where(and(eq(aiPlans.id, id), eq(aiPlans.userId, userId)));
 }

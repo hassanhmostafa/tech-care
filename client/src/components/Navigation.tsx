@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe } from "lucide-react";
+import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -15,6 +15,7 @@ export default function Navigation() {
   const navLinks = [
     { href: "/find-station", label: t.nav_findStation },
     { href: "/health", label: t.nav_myHealth },
+    ...(isAuthenticated ? [{ href: "/ai-plan", label: language === "ar" ? "خطة الذكاء الاصطناعي" : "AI Plan" }] : []),
   ];
 
   const toggleLanguage = () => setLanguage(language === "en" ? "ar" : "en");
