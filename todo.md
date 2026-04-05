@@ -110,3 +110,7 @@
 - [x] Build My Bookings section on health dashboard or separate page
 - [x] Add Bookings tab to My Kiosks page for owners to see/manage upcoming visits
 - [x] Write vitest tests for bookings and kioskRequests (17 new tests, 67 total passing)
+
+## Bug Fix: Kiosk Request Approval Owner Assignment
+- [x] Fix approveKioskRequest: set ownerId to requester's userId when creating kiosk from approved request
+- [x] Auto-promote requester role to kiosk_owner if they are currently a plain user

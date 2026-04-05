@@ -172,6 +172,7 @@ export const adminRouter = router({
       if (req.status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "Request already processed" });
 
       // For create requests, auto-create the kiosk from the payload
+      // and assign the requester as the owner, promoting them to kiosk_owner role
       if (req.type === "create") {
         const payload = req.payload as Record<string, unknown>;
         const id = `kiosk-${nanoid(8)}`;
@@ -187,7 +188,10 @@ export const adminRouter = router({
           hours: (payload.hours as { day: string; open: string; close: string }[]) ?? [],
           services: (payload.services as string[]) ?? [],
           isActive: "true",
+          ownerId: req.userId,  // requester becomes the owner
         });
+        // Promote requester to kiosk_owner role if they are a plain user
+        await updateUserRole(req.userId, "kiosk_owner");
       } else if (req.type === "delete") {
         const payload = req.payload as Record<string, unknown>;
         if (payload.kioskId) {
