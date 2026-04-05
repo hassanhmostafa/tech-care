@@ -7,7 +7,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { kioskOwnerProcedure, router } from "../_core/trpc";
-import { getKiosksByOwnerId, getKioskById, updateKiosk } from "../db";
+import { getKiosksByOwnerId, getKioskById, updateKiosk, getKioskBookings, updateBookingStatus } from "../db";
 
 const kioskEditSchema = z.object({
   name: z.string().min(1).optional(),
@@ -30,10 +30,6 @@ export const kioskOwnerRouter = router({
    * Frontend: trpc.kioskOwner.myKiosks.useQuery()
    */
   myKiosks: kioskOwnerProcedure.query(async ({ ctx }) => {
-    if (ctx.user.role === "admin") {
-      // Admins can see all kiosks via the admin panel; here return their own assigned ones
-      return getKiosksByOwnerId(ctx.user.id);
-    }
     return getKiosksByOwnerId(ctx.user.id);
   }),
 
@@ -60,5 +56,36 @@ export const kioskOwnerRouter = router({
       }
 
       return updateKiosk(input.kioskId, input.data);
+    }),
+
+  /**
+   * Get bookings for a kiosk owned by the current user.
+   * Frontend: trpc.kioskOwner.getKioskBookings.useQuery({ kioskId })
+   */
+  getKioskBookings: kioskOwnerProcedure
+    .input(z.object({ kioskId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const kiosk = await getKioskById(input.kioskId);
+      if (!kiosk) throw new TRPCError({ code: "NOT_FOUND", message: "Kiosk not found" });
+      if (ctx.user.role === "kiosk_owner" && kiosk.ownerId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You can only view bookings for your own kiosks" });
+      }
+      return getKioskBookings(input.kioskId);
+    }),
+
+  /**
+   * Update a booking status for a kiosk the owner manages.
+   * Frontend: trpc.kioskOwner.updateBookingStatus.useMutation()
+   */
+  updateBookingStatus: kioskOwnerProcedure
+    .input(z.object({ bookingId: z.number(), kioskId: z.string(), status: z.enum(["confirmed", "cancelled", "completed"]) }))
+    .mutation(async ({ ctx, input }) => {
+      const kiosk = await getKioskById(input.kioskId);
+      if (!kiosk) throw new TRPCError({ code: "NOT_FOUND", message: "Kiosk not found" });
+      if (ctx.user.role === "kiosk_owner" && kiosk.ownerId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You can only manage bookings for your own kiosks" });
+      }
+      await updateBookingStatus(input.bookingId, input.status);
+      return { success: true };
     }),
 });

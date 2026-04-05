@@ -43,6 +43,13 @@
       "when": 1775406226021,
       "tag": "0005_shallow_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1775413655256,
+      "tag": "0006_superb_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

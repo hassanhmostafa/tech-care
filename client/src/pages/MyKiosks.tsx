@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { MapPin, Clock, Stethoscope, Phone, Mail, Edit, Plus, Trash2, Building2, AlertCircle } from "lucide-react";
+import { MapPin, Clock, Stethoscope, Phone, Mail, Edit, Plus, Trash2, Building2, AlertCircle, CalendarDays, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { TimeSelect } from "@/components/TimeSelect";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
@@ -137,9 +137,23 @@ export default function MyKiosks() {
 
   const [editingKiosk, setEditingKiosk] = useState<KioskRecord | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [viewingBookingsKiosk, setViewingBookingsKiosk] = useState<{ id: string; name: string } | null>(null);
 
   const { data: myKiosks, isLoading } = trpc.kioskOwner.myKiosks.useQuery(undefined, {
     enabled: isAuthenticated && (user?.role === "kiosk_owner" || user?.role === "admin"),
+  });
+
+  const { data: kioskBookings, isLoading: bookingsLoading } = trpc.kioskOwner.getKioskBookings.useQuery(
+    { kioskId: viewingBookingsKiosk?.id ?? "" },
+    { enabled: !!viewingBookingsKiosk }
+  );
+
+  const updateBookingStatusMutation = trpc.kioskOwner.updateBookingStatus.useMutation({
+    onSuccess: () => {
+      toast.success(isAr ? "تم تحديث حالة الحجز" : "Booking status updated");
+      utils.kioskOwner.getKioskBookings.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   const updateMutation = trpc.kioskOwner.updateMyKiosk.useMutation({
@@ -294,6 +308,16 @@ export default function MyKiosks() {
                         <MapPin className="w-3 h-3" /> {kiosk.location}
                       </p>
                     </div>
+                    <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewingBookingsKiosk({ id: kiosk.id, name: kiosk.name })}
+                      className="flex items-center gap-1 text-cyan-600 border-cyan-200 hover:bg-cyan-50"
+                    >
+                      <CalendarDays className="w-4 h-4" />
+                      {isAr ? "الحجوزات" : "Bookings"}
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -303,6 +327,7 @@ export default function MyKiosks() {
                       <Edit className="w-4 h-4" />
                       {isAr ? "تعديل" : "Edit"}
                     </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-0">
@@ -350,6 +375,89 @@ export default function MyKiosks() {
       </main>
 
       <Footer />
+
+      {/* Bookings Dialog */}
+      <Dialog open={!!viewingBookingsKiosk} onOpenChange={(open) => !open && setViewingBookingsKiosk(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-cyan-500" />
+              {isAr ? "حجوزات" : "Bookings"}: {viewingBookingsKiosk?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            {bookingsLoading ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-cyan-500" />
+              </div>
+            ) : !kioskBookings || kioskBookings.length === 0 ? (
+              <div className="text-center py-10">
+                <CalendarDays className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">{isAr ? "لا توجد حجوزات بعد." : "No bookings yet."}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {kioskBookings.map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm">
+                        {booking.visitDate} · {booking.timeSlot}
+                      </p>
+                      {booking.notes && (
+                        <p className="text-xs text-gray-500 mt-0.5 italic">{booking.notes}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 ml-3">
+                      <Badge className={
+                        booking.status === "confirmed" ? "bg-blue-100 text-blue-700" :
+                        booking.status === "completed" ? "bg-green-100 text-green-700" :
+                        "bg-red-100 text-red-700"
+                      }>
+                        {booking.status}
+                      </Badge>
+                      {booking.status === "confirmed" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-green-600 hover:text-green-700 h-7 px-2"
+                            onClick={() => updateBookingStatusMutation.mutate({
+                              bookingId: booking.id,
+                              kioskId: viewingBookingsKiosk!.id,
+                              status: "completed",
+                            })}
+                            disabled={updateBookingStatusMutation.isPending}
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-500 hover:text-red-600 h-7 px-2"
+                            onClick={() => updateBookingStatusMutation.mutate({
+                              bookingId: booking.id,
+                              kioskId: viewingBookingsKiosk!.id,
+                              status: "cancelled",
+                            })}
+                            disabled={updateBookingStatusMutation.isPending}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingBookingsKiosk(null)}>
+              {isAr ? "إغلاق" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       {editingKiosk && editForm && (

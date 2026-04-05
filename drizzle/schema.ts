@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, json, date } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -119,3 +119,58 @@ export const aiPlans = mysqlTable("ai_plans", {
 
 export type AiPlan = typeof aiPlans.$inferSelect;
 export type InsertAiPlan = typeof aiPlans.$inferInsert;
+
+/**
+ * Kiosk requests table.
+ * Users can submit requests to create a new kiosk or request deletion of an existing one.
+ * Admins review and approve/reject these requests.
+ */
+export const kioskRequests = mysqlTable("kiosk_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  /** The user who submitted the request */
+  userId: int("userId").notNull(),
+  /** Type of request */
+  type: mysqlEnum("type", ["create", "delete"]).notNull(),
+  /** Current status of the request */
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  /**
+   * For 'create' requests: proposed kiosk details as JSON.
+   * For 'delete' requests: the kioskId to delete.
+   */
+  payload: json("payload").$type<Record<string, unknown>>().notNull(),
+  /** Optional message from the requester explaining the request */
+  message: text("message"),
+  /** Admin's response note when approving or rejecting */
+  adminNote: text("adminNote"),
+  /** Admin who processed the request */
+  processedBy: int("processedBy"),
+  processedAt: timestamp("processedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KioskRequest = typeof kioskRequests.$inferSelect;
+export type InsertKioskRequest = typeof kioskRequests.$inferInsert;
+
+/**
+ * Kiosk visit bookings table.
+ * Users can book a time slot at a kiosk for a health screening visit.
+ */
+export const bookings = mysqlTable("bookings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  kioskId: varchar("kioskId", { length: 64 }).notNull(),
+  /** Date of the visit in YYYY-MM-DD format */
+  visitDate: varchar("visitDate", { length: 10 }).notNull(),
+  /** Time slot string e.g. "10:00 AM" */
+  timeSlot: varchar("timeSlot", { length: 20 }).notNull(),
+  /** Booking status */
+  status: mysqlEnum("status", ["pending", "confirmed", "cancelled", "completed"]).default("confirmed").notNull(),
+  /** Optional notes from the user (e.g. specific services needed) */
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Booking = typeof bookings.$inferSelect;
+export type InsertBooking = typeof bookings.$inferInsert;

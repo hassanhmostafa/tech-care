@@ -1,18 +1,90 @@
+import { useState, useMemo } from "react";
 import { useParams, Link } from "wouter";
-import { Clock, Phone, MapPin, Star, ArrowLeft, Heart, Droplet, Zap, Thermometer, Loader2 } from "lucide-react";
+import { Clock, Phone, MapPin, Star, ArrowLeft, Heart, Droplet, Zap, Thermometer, Loader2, CalendarDays, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
+import { toast } from "sonner";
 
 export default function StationDetail() {
   const { id } = useParams<{ id: string }>();
+  const { isAuthenticated } = useAuth();
+
+  // Booking dialog state
+  const [showBooking, setShowBooking] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedSlot, setSelectedSlot] = useState<string>("");
+  const [bookingNotes, setBookingNotes] = useState("");
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  const utils = trpc.useUtils();
 
   const { data: kiosk, isLoading, error } = trpc.kiosks.byId.useQuery(
     { id: id ?? "" },
     { enabled: !!id }
   );
+
+  // Generate today's date string and min date for date picker
+  const today = useMemo(() => {
+    const d = new Date();
+    return d.toISOString().split("T")[0];
+  }, []);
+
+  // Max date: 30 days from today
+  const maxDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split("T")[0];
+  }, []);
+
+  const { data: slotData, isLoading: slotsLoading } = trpc.bookings.availableSlots.useQuery(
+    { kioskId: id ?? "", visitDate: selectedDate },
+    { enabled: !!id && !!selectedDate && showBooking }
+  );
+
+  const bookMutation = trpc.bookings.book.useMutation({
+    onSuccess: () => {
+      setBookingSuccess(true);
+      utils.bookings.myBookings.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleBook = () => {
+    if (!id || !selectedDate || !selectedSlot) return;
+    bookMutation.mutate({
+      kioskId: id,
+      visitDate: selectedDate,
+      timeSlot: selectedSlot,
+      notes: bookingNotes || undefined,
+    });
+  };
+
+  const handleOpenBooking = () => {
+    if (!isAuthenticated) {
+      window.location.href = getLoginUrl();
+      return;
+    }
+    setShowBooking(true);
+    setBookingSuccess(false);
+    setSelectedDate("");
+    setSelectedSlot("");
+    setBookingNotes("");
+  };
+
+  const handleCloseBooking = () => {
+    setShowBooking(false);
+    setBookingSuccess(false);
+    setSelectedDate("");
+    setSelectedSlot("");
+    setBookingNotes("");
+  };
 
   if (isLoading) {
     return (
@@ -55,7 +127,6 @@ export default function StationDetail() {
 
   const handleGetDirections = () => {
     if (!lat || !lng) return;
-    // Opens Google Maps directions in a new tab using the kiosk coordinates
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(kiosk.name)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -144,7 +215,7 @@ export default function StationDetail() {
                         <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                           <span className="font-medium text-gray-900">{hour.day}</span>
                           <span className="text-gray-600">
-                            {hour.open} - {hour.close}
+                            {hour.open} – {hour.close}
                           </span>
                         </div>
                       ))}
@@ -196,8 +267,11 @@ export default function StationDetail() {
                   </div>
 
                   <div className="mt-6 pt-6 border-t border-gray-200">
-                    <Button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white mb-3">
-                      <Clock className="w-4 h-4 mr-2" />
+                    <Button
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-white mb-3"
+                      onClick={handleOpenBooking}
+                    >
+                      <CalendarDays className="w-4 h-4 mr-2" />
                       Book Screening
                     </Button>
                     <Button
@@ -238,7 +312,7 @@ export default function StationDetail() {
                   <h3 className="font-bold text-gray-900 mb-3">Quick Tips</h3>
                   <ul className="text-sm text-gray-700 space-y-2">
                     <li>✓ Screenings are completely free</li>
-                    <li>✓ No appointment necessary</li>
+                    <li>✓ Book a slot to avoid waiting</li>
                     <li>✓ Results available immediately</li>
                     <li>✓ Privacy fully protected</li>
                   </ul>
@@ -255,20 +329,155 @@ export default function StationDetail() {
             <p className="text-cyan-50 mb-6 max-w-2xl mx-auto">
               Visit {kiosk.name} today with Tech Care and take the first step towards better health
             </p>
-            <Button
-              size="lg"
-              className="bg-white text-cyan-600 hover:bg-gray-100"
-              onClick={handleGetDirections}
-              disabled={!lat || !lng}
-            >
-              <MapPin className="w-4 h-4 mr-2" />
-              Get Directions
-            </Button>
+            <div className="flex gap-4 justify-center">
+              <Button
+                size="lg"
+                className="bg-white text-cyan-600 hover:bg-gray-100"
+                onClick={handleOpenBooking}
+              >
+                <CalendarDays className="w-4 h-4 mr-2" />
+                Book a Slot
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-white/20"
+                onClick={handleGetDirections}
+                disabled={!lat || !lng}
+              >
+                <MapPin className="w-4 h-4 mr-2" />
+                Get Directions
+              </Button>
+            </div>
           </div>
         </section>
       </main>
 
       <Footer />
+
+      {/* ── Booking Dialog ──────────────────────────────────────────────────── */}
+      <Dialog open={showBooking} onOpenChange={(open) => !open && handleCloseBooking()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-cyan-500" />
+              Book a Screening Slot
+            </DialogTitle>
+          </DialogHeader>
+
+          {bookingSuccess ? (
+            <div className="py-8 text-center space-y-4">
+              <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
+              <h3 className="text-xl font-bold text-gray-900">Booking Confirmed!</h3>
+              <p className="text-gray-600">
+                Your screening slot at <span className="font-semibold">{kiosk.name}</span> has been booked for{" "}
+                <span className="font-semibold">{selectedDate}</span> at{" "}
+                <span className="font-semibold">{selectedSlot}</span>.
+              </p>
+              <p className="text-sm text-gray-500">You can view your bookings in your profile.</p>
+              <Button className="bg-cyan-500 hover:bg-cyan-600" onClick={handleCloseBooking}>
+                Done
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-5 py-2">
+                {/* Date picker */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Select Date</label>
+                  <input
+                    type="date"
+                    min={today}
+                    max={maxDate}
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setSelectedSlot("");
+                    }}
+                    className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  />
+                </div>
+
+                {/* Time slots */}
+                {selectedDate && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Select Time Slot</label>
+                    {slotsLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading available slots…
+                      </div>
+                    ) : slotData?.closed ? (
+                      <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        This station is closed on the selected day.
+                      </div>
+                    ) : !slotData?.slots || slotData.slots.length === 0 ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-3 rounded-md">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        No available slots for this date. Please try another day.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                        {slotData.slots.map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => setSelectedSlot(slot)}
+                            className={`px-2 py-2 text-xs font-medium rounded-md border transition-colors ${
+                              selectedSlot === slot
+                                ? "bg-cyan-500 text-white border-cyan-500"
+                                : "bg-white text-gray-700 border-gray-200 hover:border-cyan-400 hover:text-cyan-600"
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Optional notes */}
+                {selectedSlot && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Notes (optional)</label>
+                    <textarea
+                      value={bookingNotes}
+                      onChange={(e) => setBookingNotes(e.target.value)}
+                      placeholder="Any special requirements or notes…"
+                      rows={2}
+                      className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 resize-none"
+                    />
+                  </div>
+                )}
+
+                {/* Summary */}
+                {selectedDate && selectedSlot && (
+                  <div className="bg-cyan-50 border border-cyan-200 rounded-md p-3 text-sm">
+                    <p className="font-medium text-cyan-800">Booking Summary</p>
+                    <p className="text-cyan-700 mt-1">
+                      {kiosk.name} · {selectedDate} · {selectedSlot}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCloseBooking}>Cancel</Button>
+                <Button
+                  className="bg-cyan-500 hover:bg-cyan-600"
+                  onClick={handleBook}
+                  disabled={!selectedDate || !selectedSlot || bookMutation.isPending}
+                >
+                  {bookMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Confirm Booking
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

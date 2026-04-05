@@ -12,6 +12,7 @@ import HealthDashboard from "./pages/HealthDashboard";
 import Profile from "./pages/Profile";
 import AiPlan from "./pages/AiPlan";
 import MyKiosks from "./pages/MyKiosks";
+import KioskRequests from "./pages/KioskRequests";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -25,6 +26,7 @@ function Router() {
       <Route path={"/profile"} component={Profile} />
       <Route path={"/ai-plan"} component={AiPlan} />
       <Route path={"/my-kiosks"} component={MyKiosks} />
+      <Route path={"/kiosk-requests"} component={KioskRequests} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

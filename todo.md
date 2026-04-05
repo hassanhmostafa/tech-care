@@ -87,3 +87,26 @@
 ## Hours Editor Fix
 - [x] Replace 24-hour time inputs with 12-hour AM/PM selectors in MyKiosks HoursEditor
 - [x] Replace 24-hour time inputs with 12-hour AM/PM selectors in Admin panel HoursEditor
+
+## Searchable User Picker for Admin Owner Assignment
+- [x] Replace dropdown with searchable combobox (search by name or email)
+- [x] Build UserSearchCombobox component with debounced search
+
+## Kiosk Request Workflow (User → Admin)
+- [x] Add kioskRequests table to schema (type: create/delete, status: pending/approved/rejected, payload JSON)
+- [x] Run DB migration
+- [x] Add submitKioskRequest procedure (any authenticated user)
+- [x] Add listKioskRequests, approveRequest, rejectRequest procedures (admin only)
+- [x] Build "Request a Kiosk" page/modal for users to submit create/delete requests
+- [x] Add Requests tab to Admin panel with approve/reject actions
+- [x] Show pending request count badge on Admin nav
+
+## Kiosk Visit Booking System
+- [x] Add bookings table to schema (userId, kioskId, date, timeSlot, status, notes)
+- [x] Run DB migration
+- [x] Add bookSlot, myBookings, cancelBooking procedures (user)
+- [x] Add kioskBookings procedure (kiosk_owner/admin — see bookings for owned kiosks)
+- [x] Build booking UI on station detail page (date picker + available time slots)
+- [x] Build My Bookings section on health dashboard or separate page
+- [x] Add Bookings tab to My Kiosks page for owners to see/manage upcoming visits
+- [x] Write vitest tests for bookings and kioskRequests (17 new tests, 67 total passing)

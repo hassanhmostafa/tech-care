@@ -1,6 +1,9 @@
-import { eq, like, or, desc, and, gte } from "drizzle-orm";
+import { eq, like, or, desc, and, gte, ilike } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, kiosks, InsertKiosk, healthReadings, InsertHealthReading, aiPlans, InsertAiPlan } from "../drizzle/schema";
+import {
+  InsertUser, users, kiosks, InsertKiosk, healthReadings, InsertHealthReading,
+  aiPlans, InsertAiPlan, kioskRequests, InsertKioskRequest, bookings, InsertBooking
+} from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -235,7 +238,7 @@ export async function getKiosksByOwnerId(ownerId: number) {
 }
 
 /**
- * Get all users (for admin owner assignment dropdown).
+ * Get all users (for admin management).
  */
 export async function getAllUsers() {
   const db = await getDb();
@@ -246,6 +249,27 @@ export async function getAllUsers() {
     email: users.email,
     role: users.role,
   }).from(users).orderBy(users.name);
+}
+
+/**
+ * Search users by name or email (for admin owner assignment combobox).
+ * Returns up to 20 results.
+ */
+export async function searchUsers(query: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const pattern = `%${query}%`;
+  return db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+  }).from(users).where(
+    or(
+      like(users.name, pattern),
+      like(users.email, pattern)
+    )
+  ).limit(20);
 }
 
 /**
@@ -382,4 +406,166 @@ export async function deleteAiPlan(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(aiPlans).where(and(eq(aiPlans.id, id), eq(aiPlans.userId, userId)));
+}
+
+// ─────────────────────────────────────────────
+// Kiosk Request helpers
+// ─────────────────────────────────────────────
+
+/**
+ * Submit a new kiosk request (create or delete) from a user.
+ */
+export async function createKioskRequest(data: InsertKioskRequest) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(kioskRequests).values(data);
+  const result = await db
+    .select()
+    .from(kioskRequests)
+    .where(eq(kioskRequests.userId, data.userId))
+    .orderBy(desc(kioskRequests.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+/**
+ * Get all kiosk requests, newest first (admin only).
+ */
+export async function getAllKioskRequests() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kioskRequests).orderBy(desc(kioskRequests.createdAt));
+}
+
+/**
+ * Get kiosk requests submitted by a specific user.
+ */
+export async function getUserKioskRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(kioskRequests)
+    .where(eq(kioskRequests.userId, userId))
+    .orderBy(desc(kioskRequests.createdAt));
+}
+
+/**
+ * Count pending kiosk requests (for admin badge).
+ */
+export async function countPendingKioskRequests() {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db
+    .select()
+    .from(kioskRequests)
+    .where(eq(kioskRequests.status, "pending"));
+  return result.length;
+}
+
+/**
+ * Update a kiosk request status (approve/reject).
+ */
+export async function updateKioskRequestStatus(
+  id: number,
+  status: "approved" | "rejected",
+  adminId: number,
+  adminNote?: string
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(kioskRequests).set({
+    status,
+    processedBy: adminId,
+    processedAt: new Date(),
+    adminNote: adminNote ?? null,
+    updatedAt: new Date(),
+  }).where(eq(kioskRequests.id, id));
+  const result = await db.select().from(kioskRequests).where(eq(kioskRequests.id, id)).limit(1);
+  return result[0];
+}
+
+// ─────────────────────────────────────────────
+// Booking helpers
+// ─────────────────────────────────────────────
+
+/**
+ * Create a new booking for a user at a kiosk.
+ */
+export async function createBooking(data: InsertBooking) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(bookings).values(data);
+  const result = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.userId, data.userId))
+    .orderBy(desc(bookings.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+/**
+ * Get all bookings for a specific user, newest first.
+ */
+export async function getUserBookings(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.userId, userId))
+    .orderBy(desc(bookings.visitDate), desc(bookings.timeSlot));
+}
+
+/**
+ * Get all bookings for a specific kiosk (for owner/admin view).
+ */
+export async function getKioskBookings(kioskId: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(bookings)
+    .where(and(eq(bookings.kioskId, kioskId), or(
+      eq(bookings.status, "confirmed"),
+      eq(bookings.status, "pending")
+    )))
+    .orderBy(bookings.visitDate, bookings.timeSlot);
+}
+
+/**
+ * Get booked time slots for a kiosk on a specific date (to show availability).
+ */
+export async function getBookedSlots(kioskId: string, visitDate: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db
+    .select({ timeSlot: bookings.timeSlot })
+    .from(bookings)
+    .where(and(
+      eq(bookings.kioskId, kioskId),
+      eq(bookings.visitDate, visitDate),
+      or(eq(bookings.status, "confirmed"), eq(bookings.status, "pending"))
+    ));
+  return result.map(r => r.timeSlot);
+}
+
+/**
+ * Cancel a booking (user can only cancel their own).
+ */
+export async function cancelBooking(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ status: "cancelled", updatedAt: new Date() })
+    .where(and(eq(bookings.id, id), eq(bookings.userId, userId)));
+}
+
+/**
+ * Update booking status (owner/admin can mark as completed or cancelled).
+ */
+export async function updateBookingStatus(id: number, status: "confirmed" | "cancelled" | "completed") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(bookings).set({ status, updatedAt: new Date() }).where(eq(bookings.id, id));
 }

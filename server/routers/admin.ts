@@ -11,9 +11,14 @@ import {
   createKiosk,
   updateKiosk,
   deleteKiosk,
-  deactivateKiosk,
   getAllUsers,
+  searchUsers,
   updateUserRole,
+  getAllKioskRequests,
+  countPendingKioskRequests,
+  updateKioskRequestStatus,
+  getKioskBookings,
+  updateBookingStatus,
 } from "../db";
 import { nanoid } from "nanoid";
 
@@ -92,12 +97,23 @@ export const adminRouter = router({
     }),
 
   /**
-   * List all registered users (for owner assignment dropdown).
+   * List all registered users (for management).
    * Frontend: trpc.admin.listUsers.useQuery()
    */
   listUsers: adminProcedure.query(async () => {
     return getAllUsers();
   }),
+
+  /**
+   * Search users by name or email (for owner assignment combobox).
+   * Frontend: trpc.admin.searchUsers.useQuery({ query })
+   */
+  searchUsers: adminProcedure
+    .input(z.object({ query: z.string() }))
+    .query(async ({ input }) => {
+      if (!input.query.trim()) return [];
+      return searchUsers(input.query);
+    }),
 
   /**
    * Assign a kiosk owner: sets kiosk.ownerId and promotes user to kiosk_owner role.
@@ -107,9 +123,7 @@ export const adminRouter = router({
   assignKioskOwner: adminProcedure
     .input(z.object({ kioskId: z.string(), ownerId: z.number().nullable() }))
     .mutation(async ({ input }) => {
-      // Update kiosk ownership
       await updateKiosk(input.kioskId, { ownerId: input.ownerId ?? undefined });
-      // Promote user to kiosk_owner if assigning, or demote to user if unassigning
       if (input.ownerId !== null) {
         await updateUserRole(input.ownerId, "kiosk_owner");
       }
@@ -124,6 +138,102 @@ export const adminRouter = router({
     .input(z.object({ userId: z.number(), role: z.enum(["user", "kiosk_owner", "admin"]) }))
     .mutation(async ({ input }) => {
       await updateUserRole(input.userId, input.role);
+      return { success: true };
+    }),
+
+  // ── Kiosk Requests ────────────────────────────────────────────────────────
+
+  /**
+   * List all kiosk requests (pending, approved, rejected).
+   * Frontend: trpc.admin.listKioskRequests.useQuery()
+   */
+  listKioskRequests: adminProcedure.query(async () => {
+    return getAllKioskRequests();
+  }),
+
+  /**
+   * Count pending kiosk requests (for nav badge).
+   * Frontend: trpc.admin.pendingRequestCount.useQuery()
+   */
+  pendingRequestCount: adminProcedure.query(async () => {
+    return countPendingKioskRequests();
+  }),
+
+  /**
+   * Approve a kiosk request. For 'create' requests, also creates the kiosk.
+   * Frontend: trpc.admin.approveKioskRequest.useMutation()
+   */
+  approveKioskRequest: adminProcedure
+    .input(z.object({ requestId: z.number(), adminNote: z.string().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const requests = await getAllKioskRequests();
+      const req = requests.find(r => r.id === input.requestId);
+      if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "Request not found" });
+      if (req.status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "Request already processed" });
+
+      // For create requests, auto-create the kiosk from the payload
+      if (req.type === "create") {
+        const payload = req.payload as Record<string, unknown>;
+        const id = `kiosk-${nanoid(8)}`;
+        await createKiosk({
+          id,
+          name: String(payload.name ?? "New Kiosk"),
+          location: String(payload.location ?? ""),
+          address: String(payload.address ?? ""),
+          latitude: String(payload.latitude ?? "21.4858"),
+          longitude: String(payload.longitude ?? "39.1925"),
+          phone: payload.phone ? String(payload.phone) : undefined,
+          email: payload.email ? String(payload.email) : undefined,
+          hours: (payload.hours as { day: string; open: string; close: string }[]) ?? [],
+          services: (payload.services as string[]) ?? [],
+          isActive: "true",
+        });
+      } else if (req.type === "delete") {
+        const payload = req.payload as Record<string, unknown>;
+        if (payload.kioskId) {
+          await deleteKiosk(String(payload.kioskId));
+        }
+      }
+
+      await updateKioskRequestStatus(input.requestId, "approved", ctx.user.id, input.adminNote);
+      return { success: true };
+    }),
+
+  /**
+   * Reject a kiosk request.
+   * Frontend: trpc.admin.rejectKioskRequest.useMutation()
+   */
+  rejectKioskRequest: adminProcedure
+    .input(z.object({ requestId: z.number(), adminNote: z.string().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const requests = await getAllKioskRequests();
+      const req = requests.find(r => r.id === input.requestId);
+      if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "Request not found" });
+      if (req.status !== "pending") throw new TRPCError({ code: "BAD_REQUEST", message: "Request already processed" });
+      await updateKioskRequestStatus(input.requestId, "rejected", ctx.user.id, input.adminNote);
+      return { success: true };
+    }),
+
+  // ── Bookings (admin/owner view) ───────────────────────────────────────────
+
+  /**
+   * Get all bookings for a specific kiosk.
+   * Frontend: trpc.admin.getKioskBookings.useQuery({ kioskId })
+   */
+  getKioskBookings: adminProcedure
+    .input(z.object({ kioskId: z.string() }))
+    .query(async ({ input }) => {
+      return getKioskBookings(input.kioskId);
+    }),
+
+  /**
+   * Update a booking status (admin can mark complete or cancel).
+   * Frontend: trpc.admin.updateBookingStatus.useMutation()
+   */
+  updateBookingStatus: adminProcedure
+    .input(z.object({ bookingId: z.number(), status: z.enum(["confirmed", "cancelled", "completed"]) }))
+    .mutation(async ({ input }) => {
+      await updateBookingStatus(input.bookingId, input.status);
       return { success: true };
     }),
 });
