@@ -511,11 +511,24 @@ export async function createBooking(data: InsertBooking) {
 export async function getUserBookings(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db
-    .select()
+  const rows = await db
+    .select({
+      id: bookings.id,
+      userId: bookings.userId,
+      kioskId: bookings.kioskId,
+      visitDate: bookings.visitDate,
+      timeSlot: bookings.timeSlot,
+      status: bookings.status,
+      notes: bookings.notes,
+      createdAt: bookings.createdAt,
+      kioskName: kiosks.name,
+      kioskLocation: kiosks.location,
+    })
     .from(bookings)
+    .leftJoin(kiosks, eq(bookings.kioskId, kiosks.id))
     .where(eq(bookings.userId, userId))
     .orderBy(desc(bookings.visitDate), desc(bookings.timeSlot));
+  return rows;
 }
 
 /**

@@ -114,3 +114,11 @@
 ## Bug Fix: Kiosk Request Approval Owner Assignment
 - [x] Fix approveKioskRequest: set ownerId to requester's userId when creating kiosk from approved request
 - [x] Auto-promote requester role to kiosk_owner if they are currently a plain user
+
+## My Bookings Page
+- [x] Build /my-bookings page with upcoming and past booking tabs
+- [x] Show kiosk name, date, time slot, and status per booking
+- [x] Allow cancellation of confirmed bookings
+- [x] Add My Bookings nav link for authenticated users
+- [x] Register /my-bookings route in App.tsx
+- [x] Write vitest tests for cancel booking procedure (covered in bookings.test.ts)

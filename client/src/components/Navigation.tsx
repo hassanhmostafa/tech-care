@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2, ClipboardList } from "lucide-react";
+import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2, ClipboardList, CalendarDays } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -55,6 +55,18 @@ export default function Navigation() {
               >
                 <Building2 className="w-4 h-4" />
                 {language === "ar" ? "كشكاتي" : "My Kiosks"}
+              </span>
+            </Link>
+          )}
+          {isAuthenticated && (
+            <Link href="/my-bookings">
+              <span
+                className={`transition-colors cursor-pointer font-medium flex items-center gap-1 ${
+                  location === "/my-bookings" ? "text-cyan-600" : "text-gray-700 hover:text-cyan-600"
+                }`}
+              >
+                <CalendarDays className="w-4 h-4" />
+                {language === "ar" ? "حجوزاتي" : "My Bookings"}
               </span>
             </Link>
           )}
@@ -170,6 +182,17 @@ export default function Navigation() {
                 >
                   <Building2 className="w-4 h-4" />
                   {language === "ar" ? "كشكاتي" : "My Kiosks"}
+                </div>
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link href="/my-bookings">
+                <div
+                  className="text-gray-700 hover:text-cyan-600 py-2 cursor-pointer font-medium flex items-center gap-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  {language === "ar" ? "حجوزاتي" : "My Bookings"}
                 </div>
               </Link>
             )}
