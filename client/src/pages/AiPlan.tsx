@@ -191,7 +191,7 @@ export default function AiPlan() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navigation />
 
-      <main className="flex-1 container max-w-4xl py-10 space-y-8">
+      <main className="flex-1 container max-w-4xl pt-24 pb-10 space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
