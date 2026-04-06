@@ -18,7 +18,9 @@ import {
   ChevronUp,
   AlertCircle,
   Loader2,
+  Download,
 } from "lucide-react";
+import { downloadAIPlanPDF } from "@/lib/pdfExport";
 import { toast } from "sonner";
 
 type PlanType = "health" | "diet" | "combined";
@@ -53,10 +55,11 @@ const planOptions: { type: PlanType; icon: React.ReactNode; label: string; label
   },
 ];
 
-function PlanCard({ plan, onDelete, isAr }: {
+function PlanCard({ plan, onDelete, isAr, userName }: {
   plan: { id: number; planType: string; content: string; createdAt: Date; metricsSnapshot?: Record<string, unknown> | null };
   onDelete: (id: number) => void;
   isAr: boolean;
+  userName: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const option = planOptions.find((o) => o.type === plan.planType) ?? planOptions[2];
@@ -91,6 +94,13 @@ function PlanCard({ plan, onDelete, isAr }: {
               {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             <button
+              onClick={() => downloadAIPlanPDF(plan.content, plan.planType, userName, plan.createdAt)}
+              className="text-gray-400 hover:text-cyan-600 transition-colors"
+              title={isAr ? "تحميل PDF" : "Download PDF"}
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => onDelete(plan.id)}
               className="text-gray-400 hover:text-red-500 transition-colors"
               title={isAr ? "حذف" : "Delete"}
@@ -113,7 +123,7 @@ function PlanCard({ plan, onDelete, isAr }: {
 }
 
 export default function AiPlan() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const { t, language } = useLanguage();
   const isAr = language === "ar";
 
@@ -310,6 +320,7 @@ export default function AiPlan() {
                   plan={plan}
                   onDelete={(id) => deleteMutation.mutate({ id })}
                   isAr={isAr}
+                  userName={user?.name ?? 'Patient'}
                 />
               ))}
             </div>

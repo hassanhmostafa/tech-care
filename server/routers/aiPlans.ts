@@ -97,10 +97,15 @@ export const aiPlansRouter = router({
           ? "Write the entire plan in Arabic (العربية). Use proper Arabic medical and nutritional terminology."
           : "Write the entire plan in English.";
 
-      const systemPrompt = `You are a certified health coach and nutritionist specializing in preventive healthcare. 
+      const systemPrompt = `You are a certified health coach and nutritionist specializing in preventive healthcare.
 You create evidence-based, practical, and culturally appropriate plans for Saudi Arabian users.
 ${languageInstruction}
-Always include a disclaimer that this plan is for general wellness guidance and not a substitute for professional medical advice.`;
+
+Formatting rules (MUST follow):
+1. Be concise — avoid long paragraphs. Use short bullet points (max 2 lines each).
+2. For any weekly schedule (exercise, meals, or activities), ALWAYS output it as a markdown table with columns: | Day | Morning | Afternoon | Evening | (add more columns if needed for meals).
+3. Use ## for section headings, ** for key terms.
+4. End with a one-line disclaimer that this plan is for general wellness guidance only.`;
 
       const userPrompt = `Create a ${planTypeLabel} for a user with the following health profile:
 
@@ -140,7 +145,12 @@ ${
     : ""
 }
 
-Format the plan with clear headings, bullet points, and a structured layout. Make it practical and easy to follow.`;
+Format rules:
+- Keep the total plan under 600 words.
+- Use short bullet points, not long paragraphs.
+- The weekly schedule MUST be a markdown table (| Day | Morning | Afternoon | Evening |).
+- Use ## for section headings.
+- Be direct and actionable.`;
 
       // Call the LLM
       const response = await invokeLLM({

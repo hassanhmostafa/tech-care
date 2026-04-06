@@ -210,8 +210,12 @@ export const messages = mysqlTable("messages", {
   conversationId: int("conversationId").notNull(),
   /** The user who sent this message (could be the user or the expert) */
   senderId: int("senderId").notNull(),
-  /** Message text content */
-  content: text("content").notNull(),
+  /** Message text content (empty string when sending a file-only message) */
+  content: text("content").notNull().default(""),
+  /** Optional S3 URL for an attached file (PDF, image, etc.) */
+  fileUrl: varchar("fileUrl", { length: 1024 }),
+  /** Original filename for display */
+  fileName: varchar("fileName", { length: 255 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

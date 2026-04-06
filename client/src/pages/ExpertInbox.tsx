@@ -11,7 +11,9 @@ import {
   Loader2,
   Send,
   UserCircle,
-  ArrowLeft,
+  Paperclip,
+  FileText,
+  X,
 } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import Navigation from "@/components/Navigation";
@@ -26,7 +28,10 @@ export default function ExpertInbox() {
 
   const [selectedConvId, setSelectedConvId] = useState<number | null>(initialConvId);
   const [messageText, setMessageText] = useState("");
+  const [pendingFile, setPendingFile] = useState<{ name: string; base64: string; mimeType: string } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const utils = trpc.useUtils();
 
   const isExpert = user?.role === "expert";
@@ -57,11 +62,16 @@ export default function ExpertInbox() {
   const sendMessage = trpc.chat.sendMessage.useMutation({
     onSuccess: () => {
       setMessageText("");
+      setPendingFile(null);
       utils.chat.getMessages.invalidate({ conversationId: selectedConvId! });
       utils.chat.myConversations.invalidate();
       utils.chat.expertInbox.invalidate();
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  const uploadFile = trpc.chat.uploadFile.useMutation({
+    onError: (e) => toast.error(`Upload failed: ${e.message}`),
   });
 
   // Auto-scroll to bottom when messages change
@@ -76,9 +86,31 @@ export default function ExpertInbox() {
     }
   }, [convList, selectedConvId]);
 
-  const handleSend = () => {
-    if (!messageText.trim() || !selectedConvId) return;
-    sendMessage.mutate({ conversationId: selectedConvId, content: messageText.trim() });
+  const handleSend = async () => {
+    if ((!messageText.trim() && !pendingFile) || !selectedConvId) return;
+
+    if (pendingFile) {
+      // Upload file first, then send message with fileUrl
+      setIsUploading(true);
+      try {
+        const result = await uploadFile.mutateAsync({
+          conversationId: selectedConvId,
+          fileName: pendingFile.name,
+          fileBase64: pendingFile.base64,
+          mimeType: pendingFile.mimeType,
+        });
+        await sendMessage.mutateAsync({
+          conversationId: selectedConvId,
+          content: messageText.trim(),
+          fileUrl: result.url,
+          fileName: result.fileName,
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      sendMessage.mutate({ conversationId: selectedConvId, content: messageText.trim() });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -86,6 +118,33 @@ export default function ExpertInbox() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Limit to PDF and images, max 10 MB
+    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Only PDF and image files are supported");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File must be under 10 MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // Strip the data URL prefix to get raw base64
+      const base64 = dataUrl.split(",")[1];
+      setPendingFile({ name: file.name, base64, mimeType: file.type });
+    };
+    reader.readAsDataURL(file);
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
   };
 
   // Type-safe accessors for the two different conversation shapes
@@ -136,6 +195,8 @@ export default function ExpertInbox() {
       </div>
     );
   }
+
+  const isSending = sendMessage.isPending || isUploading;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -293,7 +354,28 @@ export default function ExpertInbox() {
                                       : "bg-gray-100 text-gray-800 rounded-bl-sm"
                                   }`}
                                 >
-                                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                  {/* Text content */}
+                                  {msg.content && (
+                                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                  )}
+                                  {/* File attachment */}
+                                  {msg.fileUrl && (
+                                    <a
+                                      href={msg.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`flex items-center gap-2 mt-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                                        isMine
+                                          ? "bg-teal-500 hover:bg-teal-400 text-white"
+                                          : "bg-white hover:bg-gray-50 text-teal-700 border border-gray-200"
+                                      }`}
+                                    >
+                                      <FileText className="w-4 h-4 flex-shrink-0" />
+                                      <span className="truncate max-w-[180px]">
+                                        {msg.fileName || "Attachment"}
+                                      </span>
+                                    </a>
+                                  )}
                                   <p className={`text-xs mt-1 ${isMine ? "text-teal-200" : "text-gray-400"}`}>
                                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                   </p>
@@ -305,9 +387,44 @@ export default function ExpertInbox() {
                         <div ref={messagesEndRef} />
                       </div>
 
+                      {/* Pending file preview */}
+                      {pendingFile && (
+                        <div className="px-4 pb-2">
+                          <div className="flex items-center gap-2 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-sm text-teal-700">
+                            <FileText className="w-4 h-4 flex-shrink-0" />
+                            <span className="flex-1 truncate">{pendingFile.name}</span>
+                            <button
+                              onClick={() => setPendingFile(null)}
+                              className="text-teal-500 hover:text-teal-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Input */}
                       <div className="p-4 border-t border-gray-100">
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-end">
+                          {/* Hidden file input */}
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="application/pdf,image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={handleFileChange}
+                          />
+                          {/* Attach button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="self-end border-gray-200 text-gray-500 hover:text-teal-600 hover:border-teal-300"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isSending}
+                            title="Attach PDF or image"
+                          >
+                            <Paperclip className="w-4 h-4" />
+                          </Button>
                           <Textarea
                             className="flex-1 resize-none min-h-[44px] max-h-32 text-sm"
                             placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
@@ -320,15 +437,18 @@ export default function ExpertInbox() {
                             className="bg-teal-600 hover:bg-teal-700 self-end"
                             size="sm"
                             onClick={handleSend}
-                            disabled={!messageText.trim() || sendMessage.isPending}
+                            disabled={(!messageText.trim() && !pendingFile) || isSending}
                           >
-                            {sendMessage.isPending ? (
+                            {isSending ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <Send className="w-4 h-4" />
                             )}
                           </Button>
                         </div>
+                        <p className="text-xs text-gray-400 mt-1.5">
+                          Attach PDF or image files up to 10 MB
+                        </p>
                       </div>
                     </>
                   )}

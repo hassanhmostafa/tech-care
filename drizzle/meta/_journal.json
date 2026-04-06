@@ -57,6 +57,13 @@
       "when": 1775446845397,
       "tag": "0007_early_deadpool",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1775483019502,
+      "tag": "0008_rich_cardiac",
+      "breakpoints": true
     }
   ]
 }

@@ -48,6 +48,7 @@ import {
   AlertCircle,
   CheckCircle2,
   User,
+  Download,
 } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -65,6 +66,7 @@ import {
 import { getLoginUrl } from "@/const";
 import { format } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { downloadHealthScoresPDF } from "@/lib/pdfExport";
 
 interface LogFormData {
   kioskId: string;
@@ -626,13 +628,43 @@ export default function HealthDashboard() {
               <h1 className="text-3xl font-bold mb-1">{t.health_title}</h1>
               <p className="text-cyan-100">{t.health_welcome}, {user?.name?.split(" ")[0]}</p>
             </div>
-            <Button
-              className="bg-white text-cyan-700 hover:bg-cyan-50"
-              onClick={() => setShowLog(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {t.health_logReading}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="border-white/40 text-white hover:bg-white/10 bg-transparent"
+                onClick={() => {
+                  if (!readings || readings.length === 0) {
+                    return;
+                  }
+                  downloadHealthScoresPDF(
+                    readings,
+                    healthScore && healthScore.status === 'ok' ? {
+                      score: healthScore.score,
+                      grade: healthScore.grade,
+                      gradeColor: healthScore.gradeColor,
+                      components: [
+                        { label: 'Blood Pressure', value: healthScore.breakdown.bloodPressure ?? 0, color: '#ef4444' },
+                        { label: 'Heart Rate', value: healthScore.breakdown.heartRate ?? 0, color: '#ec4899' },
+                        { label: 'BMI', value: healthScore.breakdown.bmi ?? 0, color: '#3b82f6' },
+                        { label: 'Temperature', value: healthScore.breakdown.temperature ?? 0, color: '#f97316' },
+                      ],
+                    } : null,
+                    user?.name ?? 'Patient'
+                  );
+                }}
+                disabled={!readings || readings.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Report
+              </Button>
+              <Button
+                className="bg-white text-cyan-700 hover:bg-cyan-50"
+                onClick={() => setShowLog(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t.health_logReading}
+              </Button>
+            </div>
           </div>
         </section>
 

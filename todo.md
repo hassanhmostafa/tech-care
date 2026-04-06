@@ -159,3 +159,13 @@
 ### Phase 6: Tests & Delivery
 - [x] Write vitest tests for expert request and chat procedures (19 new tests, 86 total passing)
 - [x] Save checkpoint and deliver ZIP
+
+## PDF Downloads & Chat Attachments
+- [x] Add health scores PDF download button to MyHealth page (BP, HR, BMI, temp, health score)
+- [x] Add AI plan PDF download button to AI Plan page
+- [x] Improve AI plan LLM prompt: concise output with structured weekly table in markdown
+- [x] Add fileUrl and fileName columns to messages table (migration applied)
+- [x] Add uploadFile procedure to chat router (S3 upload, 10 MB limit, PDF/image)
+- [x] Update sendMessage procedure to accept optional fileUrl and fileName
+- [x] Update ExpertInbox chat UI: attach button (paperclip), file preview, PDF/image display in messages
+- [x] All 86 tests still passing
