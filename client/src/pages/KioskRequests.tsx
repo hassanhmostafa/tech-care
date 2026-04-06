@@ -130,7 +130,7 @@ export default function KioskRequests() {
         {/* Requests list */}
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-3">
-            {isAr ? "طلباتي" : "My Registrations"}
+            {isAr ? "كشكاتي" : "My Kiosks"}
             {pendingCount > 0 && (
               <Badge className="ml-2 bg-yellow-100 text-yellow-700">{pendingCount} pending</Badge>
             )}
@@ -144,7 +144,7 @@ export default function KioskRequests() {
             <Card>
               <CardContent className="py-12 text-center">
                 <ClipboardList className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">{isAr ? "لا توجد طلبات بعد." : "No registrations yet."}</p>
+                <p className="text-gray-500">{isAr ? "لا توجد كشكات مسجلة بعد." : "No kiosks registered yet."}</p>
               </CardContent>
             </Card>
           ) : (
