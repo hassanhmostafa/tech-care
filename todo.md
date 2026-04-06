@@ -182,3 +182,6 @@
 - [x] Update KioskRequests page title, subtitle, and button labels
 - [x] Update Admin panel tab/section label for kiosk requests
 - [x] Update Arabic translations accordingly
+
+## Fix: Language switch should not mirror/flip page layout
+- [x] Remove RTL dir switching — keep layout always LTR, only text language changes

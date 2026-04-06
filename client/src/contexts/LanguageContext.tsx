@@ -316,9 +316,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const isRTL = language === "ar";
 
   useEffect(() => {
-    document.documentElement.dir = isRTL ? "rtl" : "ltr";
+    document.documentElement.dir = "ltr";
     document.documentElement.lang = language;
-  }, [isRTL, language]);
+  }, [language]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t: translations[language], isRTL }}>
