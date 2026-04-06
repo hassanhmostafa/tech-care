@@ -13,9 +13,19 @@ import {
   getConversationMessages,
   sendMessage,
   getConversationById,
+  listExperts,
 } from "../db";
 
 export const chatRouter = router({
+  /**
+   * List all approved experts (role = 'expert').
+   * Accessible to any authenticated user so they can browse and start conversations.
+   * Frontend: trpc.chat.listExperts.useQuery()
+   */
+  listExperts: protectedProcedure.query(async () => {
+    return listExperts();
+  }),
+
   /**
    * Start (or resume) a conversation with an expert.
    * Returns the conversation object.

@@ -17,7 +17,7 @@ export default function FindExperts() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
 
-  const { data: experts, isLoading } = trpc.admin.listExperts.useQuery(undefined, {
+  const { data: experts, isLoading } = trpc.chat.listExperts.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
