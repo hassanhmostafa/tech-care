@@ -106,12 +106,12 @@ export default function KioskRequests() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <ClipboardList className="w-8 h-8 text-cyan-500" />
-            {isAr ? "طلبات الكشكات" : "Kiosk Requests"}
+            {isAr ? "تسجيل كشكك" : "Register Your Kiosk"}
           </h1>
           <p className="text-gray-500 mt-1">
             {isAr
-              ? "اطلب إنشاء كشك جديد أو حذف كشك موجود. سيراجع المسؤول طلبك."
-              : "Request a new kiosk or ask to remove an existing one. An admin will review your request."}
+              ? "سجّل كشكك الصحي في منصة Tech Care أو اطلب إزالة كشك موجود. سيراجع المسؤول طلبك."
+              : "Register your health kiosk with Tech Care or request removal of an existing one. An admin will review your submission."}
           </p>
         </div>
 
@@ -119,18 +119,18 @@ export default function KioskRequests() {
         <div className="flex gap-3">
           <Button onClick={() => setShowCreateForm(true)} className="bg-cyan-500 hover:bg-cyan-600">
             <PlusCircle className="w-4 h-4 mr-2" />
-            {isAr ? "طلب إنشاء كشك" : "Request New Kiosk"}
+            {isAr ? "تسجيل كشك جديد" : "Register New Kiosk"}
           </Button>
           <Button variant="outline" onClick={() => setShowDeleteForm(true)} className="text-red-600 border-red-200 hover:bg-red-50">
             <Trash2 className="w-4 h-4 mr-2" />
-            {isAr ? "طلب حذف كشك" : "Request Kiosk Removal"}
+            {isAr ? "طلب إزالة كشك" : "Request Kiosk Removal"}
           </Button>
         </div>
 
         {/* Requests list */}
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-3">
-            {isAr ? "طلباتي" : "My Requests"}
+            {isAr ? "طلباتي" : "My Registrations"}
             {pendingCount > 0 && (
               <Badge className="ml-2 bg-yellow-100 text-yellow-700">{pendingCount} pending</Badge>
             )}
@@ -144,7 +144,7 @@ export default function KioskRequests() {
             <Card>
               <CardContent className="py-12 text-center">
                 <ClipboardList className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">{isAr ? "لا توجد طلبات بعد." : "No requests yet."}</p>
+                <p className="text-gray-500">{isAr ? "لا توجد طلبات بعد." : "No registrations yet."}</p>
               </CardContent>
             </Card>
           ) : (
@@ -207,7 +207,7 @@ export default function KioskRequests() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <PlusCircle className="w-5 h-5 text-cyan-500" />
-              {isAr ? "طلب إنشاء كشك جديد" : "Request New Kiosk"}
+              {isAr ? "تسجيل كشك جديد" : "Register New Kiosk"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -280,7 +280,7 @@ export default function KioskRequests() {
               disabled={createMutation.isPending || !createForm.name || !createForm.location || !createForm.address}
             >
               {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isAr ? "إرسال الطلب" : "Submit Request"}
+              {isAr ? "إرسال التسجيل" : "Submit Registration"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -292,7 +292,7 @@ export default function KioskRequests() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="w-5 h-5" />
-              {isAr ? "طلب حذف كشك" : "Request Kiosk Removal"}
+              {isAr ? "طلب إزالة كشك" : "Request Kiosk Removal"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">

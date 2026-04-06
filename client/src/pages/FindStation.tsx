@@ -67,7 +67,7 @@ export default function FindStation() {
               <Link href="/kiosk-requests">
                 <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/30 text-white/90 text-xs font-medium transition-colors whitespace-nowrap">
                   <ClipboardList className="w-3.5 h-3.5" />
-                  {language === "ar" ? "طلب كشك" : "Request a Kiosk"}
+                  {language === "ar" ? "تسجيل كشكك" : "Register Your Kiosk"}
                 </button>
               </Link>
             )}

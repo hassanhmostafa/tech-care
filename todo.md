@@ -176,3 +176,9 @@
 ## UX Improvement: Kiosk Requests Link
 - [x] Remove "Kiosk Requests" from main nav bar
 - [x] Add small subtle "Request a Kiosk" button in the Find Station hero banner (right side of the blue bar)
+
+## Rename: Kiosk Requests → Register Your Kiosk
+- [x] Update Find Station hero button label to "Register Your Kiosk"
+- [x] Update KioskRequests page title, subtitle, and button labels
+- [x] Update Admin panel tab/section label for kiosk requests
+- [x] Update Arabic translations accordingly

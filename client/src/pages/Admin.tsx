@@ -439,7 +439,7 @@ export default function Admin() {
               }`}
             >
               <ClipboardList className="w-4 h-4" />
-              Kiosk Requests
+              Kiosk Registrations
               {(pendingCount ?? 0) > 0 && (
                 <span className="ml-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full px-1.5 py-0.5">
                   {pendingCount}
@@ -514,7 +514,7 @@ export default function Admin() {
           <section className="py-8">
             <div className="container max-w-4xl space-y-4">
               <h2 className="text-lg font-semibold text-gray-800">
-                Kiosk Requests
+                Kiosk Registrations
                 {(pendingCount ?? 0) > 0 && (
                   <Badge className="ml-2 bg-yellow-100 text-yellow-700">{pendingCount} pending</Badge>
                 )}
