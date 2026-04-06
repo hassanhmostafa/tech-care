@@ -15,7 +15,9 @@ export function useAuth(options?: UseAuthOptions) {
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
-    refetchOnWindowFocus: false,
+    staleTime: 0,              // always consider data stale so role changes propagate immediately
+    refetchOnWindowFocus: true, // re-fetch when user switches back to the tab
+    refetchInterval: 30_000,   // poll every 30 s as a safety net
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({

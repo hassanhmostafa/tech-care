@@ -169,3 +169,6 @@
 - [x] Update sendMessage procedure to accept optional fileUrl and fileName
 - [x] Update ExpertInbox chat UI: attach button (paperclip), file preview, PDF/image display in messages
 - [x] All 86 tests still passing
+
+## Bug Fix: Role Changes Not Taking Effect
+- [x] Fix auth.me query: staleTime=0, refetchOnWindowFocus=true, refetchInterval=30s — role changes now propagate within 30 seconds without re-login
