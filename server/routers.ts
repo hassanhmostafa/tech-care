@@ -10,6 +10,8 @@ import { aiPlansRouter } from "./routers/aiPlans";
 import { kioskOwnerRouter } from "./routers/kioskOwner";
 import { bookingsRouter } from "./routers/bookings";
 import { kioskRequestsRouter } from "./routers/kioskRequests";
+import { expertRequestsRouter } from "./routers/expertRequests";
+import { chatRouter } from "./routers/chat";
 
 export const appRouter = router({
   system: systemRouter,
@@ -21,6 +23,8 @@ export const appRouter = router({
   kioskOwner: kioskOwnerRouter,
   bookings: bookingsRouter,
   kioskRequests: kioskRequestsRouter,
+  expertRequests: expertRequestsRouter,
+  chat: chatRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2, ClipboardList, CalendarDays } from "lucide-react";
+import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2, ClipboardList, CalendarDays, Stethoscope, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -79,6 +79,30 @@ export default function Navigation() {
               >
                 <ClipboardList className="w-4 h-4" />
                 {language === "ar" ? "طلبات الكشكات" : "Kiosk Requests"}
+              </span>
+            </Link>
+          )}
+          {isAuthenticated && (
+            <Link href="/experts">
+              <span
+                className={`transition-colors cursor-pointer font-medium flex items-center gap-1 ${
+                  location === "/experts" ? "text-teal-600" : "text-gray-700 hover:text-teal-600"
+                }`}
+              >
+                <Stethoscope className="w-4 h-4" />
+                {language === "ar" ? "خبراء الصحة" : "Experts"}
+              </span>
+            </Link>
+          )}
+          {user?.role === "expert" && (
+            <Link href="/expert-inbox">
+              <span
+                className={`transition-colors cursor-pointer font-medium flex items-center gap-1 ${
+                  location === "/expert-inbox" ? "text-teal-600" : "text-gray-700 hover:text-teal-600"
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                {language === "ar" ? "صندوق الوارد" : "Expert Inbox"}
               </span>
             </Link>
           )}
@@ -204,6 +228,28 @@ export default function Navigation() {
                 >
                   <ClipboardList className="w-4 h-4" />
                   {language === "ar" ? "طلبات الكشكات" : "Kiosk Requests"}
+                </div>
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link href="/experts">
+                <div
+                  className="text-gray-700 hover:text-teal-600 py-2 cursor-pointer font-medium flex items-center gap-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Stethoscope className="w-4 h-4" />
+                  {language === "ar" ? "خبراء الصحة" : "Experts"}
+                </div>
+              </Link>
+            )}
+            {user?.role === "expert" && (
+              <Link href="/expert-inbox">
+                <div
+                  className="text-gray-700 hover:text-teal-600 py-2 cursor-pointer font-medium flex items-center gap-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  {language === "ar" ? "صندوق الوارد" : "Expert Inbox"}
                 </div>
               </Link>
             )}

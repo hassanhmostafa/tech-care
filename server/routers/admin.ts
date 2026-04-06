@@ -5,7 +5,7 @@
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, router, superAdminProcedure as superAdmin } from "../_core/trpc";
 import {
   getAllKiosksAdmin,
   createKiosk,
@@ -19,6 +19,8 @@ import {
   updateKioskRequestStatus,
   getKioskBookings,
   updateBookingStatus,
+  promoteToAdmin,
+  listExperts,
 } from "../db";
 import { nanoid } from "nanoid";
 
@@ -238,6 +240,42 @@ export const adminRouter = router({
     .input(z.object({ bookingId: z.number(), status: z.enum(["confirmed", "cancelled", "completed"]) }))
     .mutation(async ({ input }) => {
       await updateBookingStatus(input.bookingId, input.status);
+      return { success: true };
+    }),
+
+  // ── Admin Management (super admin only) ──────────────────────────────────
+  /**
+   * Promote a user to admin with a specific adminType.
+   * Only super admins can do this.
+   * Frontend: trpc.admin.promoteToAdmin.useMutation()
+   */
+  promoteToAdmin: superAdmin
+    .input(z.object({
+      userId: z.number(),
+      adminType: z.enum(["kiosk", "expert", "super"]),
+    }))
+    .mutation(async ({ input }) => {
+      await promoteToAdmin(input.userId, input.adminType);
+      return { success: true };
+    }),
+
+  /**
+   * List all approved experts.
+   * Frontend: trpc.admin.listExperts.useQuery()
+   */
+  listExperts: adminProcedure.query(async () => {
+    return listExperts();
+  }),
+
+  /**
+   * Update a user's role (extended to include expert).
+   * Overrides the existing updateUserRole to support expert role.
+   * Frontend: trpc.admin.updateUserRoleExtended.useMutation()
+   */
+  updateUserRoleExtended: adminProcedure
+    .input(z.object({ userId: z.number(), role: z.enum(["user", "kiosk_owner", "expert", "admin"]) }))
+    .mutation(async ({ input }) => {
+      await updateUserRole(input.userId, input.role);
       return { success: true };
     }),
 });

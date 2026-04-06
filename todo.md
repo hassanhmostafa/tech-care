@@ -122,3 +122,40 @@
 - [x] Add My Bookings nav link for authenticated users
 - [x] Register /my-bookings route in App.tsx
 - [x] Write vitest tests for cancel booking procedure (covered in bookings.test.ts)
+
+## Expert System & Sub-Role Admins
+
+### Phase 1: Schema
+- [x] Add `expert` to users role enum
+- [x] Add `adminType` (nullable: kiosk | expert | super) column to users table
+- [x] Add `expert_requests` table (userId, specialty, credentials, bio, status, adminNote)
+- [x] Add `conversations` table (userId, expertId, createdAt)
+- [x] Add `messages` table (conversationId, senderId, content, createdAt)
+- [x] Run db:push migration
+
+### Phase 2: Server
+- [x] Add kioskAdminProcedure, expertAdminProcedure, superAdminProcedure guards
+- [x] Add expertProcedure guard
+- [x] Add expertRequests router (submit, myRequest)
+- [x] Add chat router (startConversation, sendMessage, getMessages, myConversations, expertInbox)
+- [x] Extend admin router: listExpertRequests, approveExpertRequest, rejectExpertRequest, promoteToAdmin
+
+### Phase 3: Expert Request UI
+- [x] Build /expert-request page (form + status view)
+- [x] Add Expert Requests tab to Admin panel (expert/super admin only)
+- [x] Add Admins tab to Admin panel (super admin only - promote users to admin types)
+
+### Phase 4: Expert Chat UI
+- [x] Build /experts page (browse experts by specialty, start conversation)
+- [x] Build /expert-inbox page (expert sees all conversations, replies)
+- [x] Build conversation/chat view (message thread with send form)
+
+### Phase 5: Navigation
+- [x] Add Talk to Expert nav link for authenticated users
+- [x] Add Expert Inbox nav link for expert role
+- [x] Add Apply as Expert nav link for plain user role
+- [x] Update Admin panel tab visibility by adminType
+
+### Phase 6: Tests & Delivery
+- [x] Write vitest tests for expert request and chat procedures (19 new tests, 86 total passing)
+- [x] Save checkpoint and deliver ZIP

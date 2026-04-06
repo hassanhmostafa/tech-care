@@ -51,6 +51,7 @@ import {
   Users,
   Building2,
   ClipboardList,
+  ShieldCheck,
 } from "lucide-react";
 import { TimeSelect } from "@/components/TimeSelect";
 import { UserSearchCombobox } from "@/components/UserSearchCombobox";
@@ -92,7 +93,7 @@ const emptyForm: KioskFormData = {
   services: [],
 };
 
-type Tab = "kiosks" | "users" | "requests";
+type Tab = "kiosks" | "users" | "requests" | "expert-requests" | "admins";
 
 export default function Admin() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -107,7 +108,7 @@ export default function Admin() {
 
   // Owner assignment dialog state
   const [assigningKiosk, setAssigningKiosk] = useState<{ id: string; name: string; ownerId: number | null } | null>(null);
-  const [selectedOwner, setSelectedOwner] = useState<{ id: number; name: string | null; email: string | null; role: "user" | "kiosk_owner" | "admin" } | null>(null);
+  const [selectedOwner, setSelectedOwner] = useState<{ id: number; name: string | null; email: string | null; role: "user" | "kiosk_owner" | "expert" | "admin" } | null>(null);
 
   const { data: kiosks, isLoading } = trpc.admin.listKiosks.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
@@ -120,9 +121,42 @@ export default function Admin() {
   const { data: kioskRequests, isLoading: requestsLoading } = trpc.admin.listKioskRequests.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
   });
+  const { data: expertRequests, isLoading: expertRequestsLoading } = trpc.expertRequests.list.useQuery(undefined, {
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+  const pendingExpertCount = expertRequests?.filter(r => r.status === "pending").length ?? 0;
+
+  const promoteToAdminMutation = trpc.admin.promoteToAdmin.useMutation({
+    onSuccess: () => {
+      utils.admin.listUsers.invalidate();
+      toast.success("User promoted to admin");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const [adminSearchQuery, setAdminSearchQuery] = useState("");
+  const [selectedAdminType, setSelectedAdminType] = useState<"kiosk" | "expert" | "super">("kiosk");
+
   const { data: pendingCount } = trpc.admin.pendingRequestCount.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
     refetchInterval: 30000,
+  });
+
+  const approveExpertMutation = trpc.expertRequests.approve.useMutation({
+    onSuccess: () => {
+      utils.expertRequests.list.invalidate();
+      utils.admin.listUsers.invalidate();
+      toast.success("Expert request approved — user promoted to expert");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const rejectExpertMutation = trpc.expertRequests.reject.useMutation({
+    onSuccess: () => {
+      utils.expertRequests.list.invalidate();
+      toast.success("Expert request rejected");
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   const approveRequestMutation = trpc.admin.approveKioskRequest.useMutation({
@@ -405,13 +439,43 @@ export default function Admin() {
               }`}
             >
               <ClipboardList className="w-4 h-4" />
-              Requests
+              Kiosk Requests
               {(pendingCount ?? 0) > 0 && (
                 <span className="ml-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full px-1.5 py-0.5">
                   {pendingCount}
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab("expert-requests")}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "expert-requests"
+                  ? "border-cyan-500 text-cyan-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Stethoscope className="w-4 h-4" />
+              Expert Requests
+              {pendingExpertCount > 0 && (
+                <span className="ml-1 bg-teal-400 text-teal-900 text-xs font-bold rounded-full px-1.5 py-0.5">
+                  {pendingExpertCount}
+                </span>
+              )}
+            </button>
+            {/* Admins tab — super admin only */}
+            {user?.adminType === "super" && (
+              <button
+                onClick={() => setActiveTab("admins")}
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "admins"
+                    ? "border-purple-500 text-purple-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Admins
+              </button>
+            )}
           </div>
         </section>
 
@@ -677,6 +741,8 @@ export default function Admin() {
                                 ? "border-red-200 text-red-600 bg-red-50"
                                 : u.role === "kiosk_owner"
                                 ? "border-cyan-200 text-cyan-600 bg-cyan-50"
+                                : u.role === "expert"
+                                ? "border-teal-200 text-teal-600 bg-teal-50"
                                 : "border-gray-200 text-gray-600"
                             }
                           >
@@ -698,6 +764,7 @@ export default function Admin() {
                             <SelectContent>
                               <SelectItem value="user">user</SelectItem>
                               <SelectItem value="kiosk_owner">kiosk_owner</SelectItem>
+                              <SelectItem value="expert">expert</SelectItem>
                               <SelectItem value="admin">admin</SelectItem>
                             </SelectContent>
                           </Select>
@@ -710,11 +777,167 @@ export default function Admin() {
             </div>
           </section>
         )}
+
+        {/* ── Expert Requests Tab ── */}
+        {activeTab === "expert-requests" && (
+          <section className="py-8">
+            <div className="container max-w-4xl space-y-4">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Expert Registration Requests
+                {pendingExpertCount > 0 && (
+                  <Badge className="ml-2 bg-teal-100 text-teal-700">{pendingExpertCount} pending</Badge>
+                )}
+              </h2>
+              {expertRequestsLoading ? (
+                <div className="flex justify-center py-20">
+                  <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+                </div>
+              ) : !expertRequests || expertRequests.length === 0 ? (
+                <Card>
+                  <CardContent className="py-16 text-center">
+                    <Stethoscope className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No expert registration requests yet.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {expertRequests.map((req) => {
+                    const isPending = req.status === "pending";
+                    return (
+                      <Card key={req.id} className={isPending ? "border-teal-200" : ""}>
+                        <CardContent className="py-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge className={
+                                  req.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                                  req.status === "approved" ? "bg-green-100 text-green-700" :
+                                  "bg-red-100 text-red-700"
+                                }>
+                                  {req.status}
+                                </Badge>
+                                <span className="text-xs text-gray-400">
+                                  {new Date(req.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="font-semibold text-gray-900">{req.userName || "Unknown User"}</p>
+                              <p className="text-sm text-gray-500">{req.userEmail}</p>
+                              <p className="text-sm font-medium text-teal-700 mt-1">{req.specialty}</p>
+                              <p className="text-sm text-gray-600 mt-0.5">{req.credentials}</p>
+                              <p className="text-sm text-gray-500 mt-1 line-clamp-2">{req.bio}</p>
+                              {req.adminNote && (
+                                <p className="text-sm mt-2 p-2 bg-gray-50 rounded border-l-2 border-teal-400">
+                                  <span className="font-medium">Admin note:</span> {req.adminNote}
+                                </p>
+                              )}
+                            </div>
+                            {isPending && (
+                              <div className="flex gap-2 shrink-0">
+                                <Button
+                                  size="sm"
+                                  className="bg-green-500 hover:bg-green-600 text-white"
+                                  onClick={() => approveExpertMutation.mutate({ requestId: req.id })}
+                                  disabled={approveExpertMutation.isPending || rejectExpertMutation.isPending}
+                                >
+                                  {approveExpertMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Approve"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => rejectExpertMutation.mutate({ requestId: req.id })}
+                                  disabled={approveExpertMutation.isPending || rejectExpertMutation.isPending}
+                                >
+                                  {rejectExpertMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Reject"}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+         {/* ── Admins Tab ── */}
+        {activeTab === "admins" && (
+          <section className="py-8">
+            <div className="container max-w-3xl">
+              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-purple-600" />
+                Admin Management
+              </h2>
+              <Card className="mb-6">
+                <CardContent className="pt-5 pb-5">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Search for a user and promote them to a specific admin role. Kiosk admins manage kiosk requests; Expert admins manage expert registrations; Super admins have full access.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <Label className="text-xs text-gray-500 mb-1 block">Search user</Label>
+                      <UserSearchCombobox
+                        value={null}
+                        onChange={(u) => {
+                          if (u) {
+                            promoteToAdminMutation.mutate({ userId: u.id, adminType: selectedAdminType });
+                          }
+                        }}
+                        placeholder="Search by name or email…"
+                      />
+                    </div>
+                    <div className="shrink-0">
+                      <Label className="text-xs text-gray-500 mb-1 block">Admin type</Label>
+                      <Select
+                        value={selectedAdminType}
+                        onValueChange={(v) => setSelectedAdminType(v as "kiosk" | "expert" | "super")}
+                      >
+                        <SelectTrigger className="w-36">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="kiosk">Kiosk Admin</SelectItem>
+                          <SelectItem value="expert">Expert Admin</SelectItem>
+                          <SelectItem value="super">Super Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Selecting a user from the search will immediately promote them. This action can be reversed by changing their role in the Users tab.</p>
+                </CardContent>
+              </Card>
+
+              {/* Current admins list */}
+              <h3 className="text-sm font-semibold text-gray-600 mb-3">Current Admins</h3>
+              {usersLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-cyan-500 animate-spin" /></div>
+              ) : (
+                <div className="space-y-2">
+                  {allUsers?.filter(u => u.role === "admin").map(u => (
+                    <Card key={u.id} className="border-purple-100">
+                      <CardContent className="py-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-gray-900">{u.name || "Unknown"}</p>
+                          <p className="text-sm text-gray-500">{u.email}</p>
+                        </div>
+                        <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                          Admin
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {allUsers?.filter(u => u.role === "admin").length === 0 && (
+                    <p className="text-sm text-gray-400 italic">No admins yet.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </main>
-
       <Footer />
-
-      {/* ── Assign Owner Dialog ──────────────────────────────────────────────── */}
+      {/* ── Assign Owner Dialogg ──────────────────────────────────────────────── */}
       <Dialog open={!!assigningKiosk} onOpenChange={(open) => !open && setAssigningKiosk(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>

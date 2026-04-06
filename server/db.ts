@@ -275,7 +275,7 @@ export async function searchUsers(query: string) {
 /**
  * Update a user's role.
  */
-export async function updateUserRole(userId: number, role: "user" | "kiosk_owner" | "admin") {
+export async function updateUserRole(userId: number, role: "user" | "kiosk_owner" | "expert" | "admin") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId));
@@ -581,4 +581,224 @@ export async function updateBookingStatus(id: number, status: "confirmed" | "can
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(bookings).set({ status, updatedAt: new Date() }).where(eq(bookings.id, id));
+}
+
+// ── Expert Requests ───────────────────────────────────────────────────────────
+
+import {
+  expertRequests, InsertExpertRequest,
+  conversations, InsertConversation,
+  messages, InsertMessage,
+} from "../drizzle/schema";
+
+/**
+ * Submit a new expert registration request.
+ */
+export async function createExpertRequest(data: InsertExpertRequest) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(expertRequests).values(data);
+}
+
+/**
+ * Get the most recent expert request for a user.
+ */
+export async function getUserExpertRequest(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(expertRequests)
+    .where(eq(expertRequests.userId, userId))
+    .orderBy(desc(expertRequests.createdAt))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * List all expert requests (for admin review), newest first.
+ */
+export async function listExpertRequests(status?: "pending" | "approved" | "rejected") {
+  const db = await getDb();
+  if (!db) return [];
+  const query = db
+    .select({
+      id: expertRequests.id,
+      userId: expertRequests.userId,
+      specialty: expertRequests.specialty,
+      credentials: expertRequests.credentials,
+      bio: expertRequests.bio,
+      status: expertRequests.status,
+      adminNote: expertRequests.adminNote,
+      processedBy: expertRequests.processedBy,
+      processedAt: expertRequests.processedAt,
+      createdAt: expertRequests.createdAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
+    .from(expertRequests)
+    .leftJoin(users, eq(expertRequests.userId, users.id))
+    .orderBy(desc(expertRequests.createdAt));
+
+  if (status) {
+    return (await query).filter(r => r.status === status);
+  }
+  return query;
+}
+
+/**
+ * Update an expert request status (approve or reject).
+ */
+export async function updateExpertRequest(
+  id: number,
+  status: "approved" | "rejected",
+  adminNote: string | undefined,
+  processedBy: number,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(expertRequests)
+    .set({ status, adminNote: adminNote ?? null, processedBy, processedAt: new Date(), updatedAt: new Date() })
+    .where(eq(expertRequests.id, id));
+}
+
+/**
+ * Get all approved experts for the experts listing page.
+ */
+export async function listExperts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      specialty: users.specialty,
+      bio: users.bio,
+    })
+    .from(users)
+    .where(eq(users.role, "expert"))
+    .orderBy(users.name);
+}
+
+/**
+ * Promote a user to admin with a specific adminType.
+ */
+export async function promoteToAdmin(userId: number, adminType: "kiosk" | "expert" | "super") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({ role: "admin", adminType, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
+// ── Conversations & Messages ──────────────────────────────────────────────────
+
+/**
+ * Find an existing conversation between a user and an expert, or create one.
+ */
+export async function findOrCreateConversation(userId: number, expertId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(conversations)
+    .where(and(eq(conversations.userId, userId), eq(conversations.expertId, expertId)))
+    .limit(1);
+
+  if (existing.length > 0) return existing[0];
+
+  await db.insert(conversations).values({ userId, expertId, lastMessageAt: new Date() });
+
+  const created = await db
+    .select()
+    .from(conversations)
+    .where(and(eq(conversations.userId, userId), eq(conversations.expertId, expertId)))
+    .limit(1);
+
+  return created[0];
+}
+
+/**
+ * Get all conversations for a user (user side).
+ */
+export async function getUserConversations(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: conversations.id,
+      expertId: conversations.expertId,
+      lastMessageAt: conversations.lastMessageAt,
+      expertName: users.name,
+      expertSpecialty: users.specialty,
+    })
+    .from(conversations)
+    .leftJoin(users, eq(conversations.expertId, users.id))
+    .where(eq(conversations.userId, userId))
+    .orderBy(desc(conversations.lastMessageAt));
+}
+
+/**
+ * Get all conversations for an expert (expert inbox).
+ */
+export async function getExpertConversations(expertId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  // alias users table for the user side
+  const { alias } = await import("drizzle-orm/mysql-core");
+  const userAlias = alias(users, "chatUser");
+
+  return db
+    .select({
+      id: conversations.id,
+      userId: conversations.userId,
+      lastMessageAt: conversations.lastMessageAt,
+      userName: userAlias.name,
+      userEmail: userAlias.email,
+    })
+    .from(conversations)
+    .leftJoin(userAlias, eq(conversations.userId, userAlias.id))
+    .where(eq(conversations.expertId, expertId))
+    .orderBy(desc(conversations.lastMessageAt));
+}
+
+/**
+ * Get messages for a conversation (newest last).
+ */
+export async function getConversationMessages(conversationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(messages.createdAt);
+}
+
+/**
+ * Send a message in a conversation and update lastMessageAt.
+ */
+export async function sendMessage(data: InsertMessage) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(messages).values(data);
+  await db
+    .update(conversations)
+    .set({ lastMessageAt: new Date() })
+    .where(eq(conversations.id, data.conversationId));
+}
+
+/**
+ * Verify that a user is a participant in a conversation (security check).
+ */
+export async function getConversationById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(conversations).where(eq(conversations.id, id)).limit(1);
+  return rows[0] ?? null;
 }

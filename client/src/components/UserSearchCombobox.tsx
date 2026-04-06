@@ -14,7 +14,7 @@ type UserOption = {
   id: number;
   name: string | null;
   email: string | null;
-  role: "user" | "kiosk_owner" | "admin";
+  role: "user" | "kiosk_owner" | "expert" | "admin";
 };
 
 interface UserSearchComboboxProps {
