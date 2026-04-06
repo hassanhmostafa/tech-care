@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2, ClipboardList, CalendarDays, Stethoscope, MessageCircle } from "lucide-react";
+import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2, CalendarDays, Stethoscope, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -70,18 +70,7 @@ export default function Navigation() {
               </span>
             </Link>
           )}
-          {isAuthenticated && (
-            <Link href="/kiosk-requests">
-              <span
-                className={`transition-colors cursor-pointer font-medium flex items-center gap-1 ${
-                  location === "/kiosk-requests" ? "text-cyan-600" : "text-gray-700 hover:text-cyan-600"
-                }`}
-              >
-                <ClipboardList className="w-4 h-4" />
-                {language === "ar" ? "طلبات الكشكات" : "Kiosk Requests"}
-              </span>
-            </Link>
-          )}
+
           {isAuthenticated && (
             <Link href="/experts">
               <span
@@ -220,17 +209,7 @@ export default function Navigation() {
                 </div>
               </Link>
             )}
-            {isAuthenticated && (
-              <Link href="/kiosk-requests">
-                <div
-                  className="text-gray-700 hover:text-cyan-600 py-2 cursor-pointer font-medium flex items-center gap-1"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <ClipboardList className="w-4 h-4" />
-                  {language === "ar" ? "طلبات الكشكات" : "Kiosk Requests"}
-                </div>
-              </Link>
-            )}
+
             {isAuthenticated && (
               <Link href="/experts">
                 <div

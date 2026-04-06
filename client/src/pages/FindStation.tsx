@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { MapPin, Clock, Phone, Star, Search, Loader2 } from "lucide-react";
+import { MapPin, Clock, Phone, Star, Search, Loader2, ClipboardList } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,8 @@ import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function FindStation() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedKiosk, setSelectedKiosk] = useState<Kiosk | null>(null);
@@ -56,9 +58,19 @@ export default function FindStation() {
       <main className="flex-1 pt-20">
         {/* Header */}
         <section className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-12">
-          <div className="container">
-            <h1 className="text-4xl font-bold mb-2">{t.findStation_title}</h1>
-            <p className="text-cyan-50">{t.findStation_subtitle}</p>
+          <div className="container flex items-end justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">{t.findStation_title}</h1>
+              <p className="text-cyan-50">{t.findStation_subtitle}</p>
+            </div>
+            {isAuthenticated && (
+              <Link href="/kiosk-requests">
+                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/30 text-white/90 text-xs font-medium transition-colors whitespace-nowrap">
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  {language === "ar" ? "طلب كشك" : "Request a Kiosk"}
+                </button>
+              </Link>
+            )}
           </div>
         </section>
 

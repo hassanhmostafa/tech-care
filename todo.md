@@ -172,3 +172,7 @@
 
 ## Bug Fix: Role Changes Not Taking Effect
 - [x] Fix auth.me query: staleTime=0, refetchOnWindowFocus=true, refetchInterval=30s — role changes now propagate within 30 seconds without re-login
+
+## UX Improvement: Kiosk Requests Link
+- [x] Remove "Kiosk Requests" from main nav bar
+- [x] Add small subtle "Request a Kiosk" button in the Find Station hero banner (right side of the blue bar)
