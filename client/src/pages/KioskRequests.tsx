@@ -280,7 +280,7 @@ export default function KioskRequests() {
               disabled={createMutation.isPending || !createForm.name || !createForm.location || !createForm.address}
             >
               {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isAr ? "إرسال التسجيل" : "Submit Registration"}
+              {isAr ? "إرسال" : "Submit"}
             </Button>
           </DialogFooter>
         </DialogContent>
