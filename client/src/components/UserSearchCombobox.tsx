@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Search, X, User } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type UserOption = {
   id: number;
@@ -27,9 +28,21 @@ const ROLE_COLORS: Record<string, string> = {
   admin: "bg-red-100 text-red-700",
   kiosk_owner: "bg-cyan-100 text-cyan-700",
   user: "bg-gray-100 text-gray-600",
+  expert: "bg-teal-100 text-teal-700",
 };
 
-export function UserSearchCombobox({ value, onChange, placeholder = "Search by name or email…" }: UserSearchComboboxProps) {
+const ROLE_LABELS_AR: Record<string, string> = {
+  admin: "مسؤول",
+  kiosk_owner: "مالك كشك",
+  user: "مستخدم",
+  expert: "خبير",
+};
+
+export function UserSearchCombobox({ value, onChange, placeholder }: UserSearchComboboxProps) {
+  const { language } = useLanguage();
+  const isAr = language === "ar";
+  const defaultPlaceholder = placeholder ?? (isAr ? "ابحث بالاسم أو البريد الإلكتروني…" : "Search by name or email…");
+
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -70,17 +83,22 @@ export function UserSearchCombobox({ value, onChange, placeholder = "Search by n
     setDebouncedQuery("");
   };
 
+  const getRoleLabel = (role: string) => {
+    if (isAr) return ROLE_LABELS_AR[role] ?? role;
+    return role.replace("_", " ");
+  };
+
   // If a user is already selected, show the selected state
   if (value) {
     return (
       <div className="flex items-center gap-2 p-2 border border-gray-200 rounded-md bg-gray-50">
         <User className="w-4 h-4 text-gray-400 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{value.name ?? "Unknown"}</p>
+          <p className="text-sm font-medium truncate">{value.name ?? (isAr ? "غير معروف" : "Unknown")}</p>
           {value.email && <p className="text-xs text-gray-500 truncate">{value.email}</p>}
         </div>
         <Badge className={`text-xs shrink-0 ${ROLE_COLORS[value.role]}`}>
-          {value.role.replace("_", " ")}
+          {getRoleLabel(value.role)}
         </Badge>
         <Button
           type="button"
@@ -106,7 +124,7 @@ export function UserSearchCombobox({ value, onChange, placeholder = "Search by n
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder={placeholder}
+          placeholder={defaultPlaceholder}
           className="pl-8"
         />
       </div>
@@ -114,9 +132,9 @@ export function UserSearchCombobox({ value, onChange, placeholder = "Search by n
       {open && debouncedQuery.trim().length >= 1 && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-56 overflow-y-auto">
           {isLoading ? (
-            <div className="px-3 py-2 text-sm text-gray-500">Searching…</div>
+            <div className="px-3 py-2 text-sm text-gray-500">{isAr ? "جارٍ البحث…" : "Searching…"}</div>
           ) : !results || results.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-500">No users found</div>
+            <div className="px-3 py-2 text-sm text-gray-500">{isAr ? "لا يوجد مستخدمون" : "No users found"}</div>
           ) : (
             results.map((user) => (
               <button
@@ -127,11 +145,11 @@ export function UserSearchCombobox({ value, onChange, placeholder = "Search by n
               >
                 <User className="w-4 h-4 text-gray-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user.name ?? "Unknown"}</p>
+                  <p className="text-sm font-medium truncate">{user.name ?? (isAr ? "غير معروف" : "Unknown")}</p>
                   {user.email && <p className="text-xs text-gray-500 truncate">{user.email}</p>}
                 </div>
                 <Badge className={`text-xs shrink-0 ${ROLE_COLORS[user.role]}`}>
-                  {user.role.replace("_", " ")}
+                  {getRoleLabel(user.role)}
                 </Badge>
               </button>
             ))

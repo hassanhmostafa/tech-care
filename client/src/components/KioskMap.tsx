@@ -5,13 +5,15 @@ import { Kiosk } from "@/lib/kiosks";
 interface KioskMapProps {
   kiosks: Kiosk[];
   selectedKiosk: Kiosk | null;
+  language?: string;
 }
 
 interface MarkerWithInfo extends google.maps.marker.AdvancedMarkerElement {
   infoWindow?: google.maps.InfoWindow;
 }
 
-export default function KioskMap({ kiosks, selectedKiosk }: KioskMapProps) {
+export default function KioskMap({ kiosks, selectedKiosk, language = "en" }: KioskMapProps) {
+  const isAr = language === "ar";
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<MarkerWithInfo[]>([]);
 
@@ -50,6 +52,10 @@ export default function KioskMap({ kiosks, selectedKiosk }: KioskMapProps) {
       }) as MarkerWithInfo;
 
       // Create info window content
+      const hoursLabel = isAr ? 'ساعات العمل:' : 'Hours:';
+      const distanceLabel = isAr ? 'المسافة:' : 'Distance:';
+      const naLabel = isAr ? 'غير متاح' : 'N/A';
+      const viewDetailsLabel = isAr ? 'عرض التفاصيل' : 'View Details';
       const infoWindow = new window.google.maps.InfoWindow({
         content: `
           <div style="padding: 12px; font-family: system-ui, -apple-system, sans-serif;">
@@ -58,14 +64,14 @@ export default function KioskMap({ kiosks, selectedKiosk }: KioskMapProps) {
             <p style="margin: 0 0 8px 0; font-size: 13px; color: #9ca3af;">${kiosk.address}</p>
             <div style="margin: 8px 0; padding: 8px 0; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;">
               <p style="margin: 4px 0; font-size: 13px; color: #6b7280;">
-                <strong>Hours:</strong> ${kiosk.hours?.[0]?.open ?? 'N/A'} - ${kiosk.hours?.[0]?.close ?? 'N/A'}
+                <strong>${hoursLabel}</strong> ${kiosk.hours?.[0]?.open ?? naLabel} - ${kiosk.hours?.[0]?.close ?? naLabel}
               </p>
               <p style="margin: 4px 0; font-size: 13px; color: #6b7280;">
-                <strong>Distance:</strong> ${kiosk.distance?.toFixed(1)} km
+                <strong>${distanceLabel}</strong> ${kiosk.distance?.toFixed(1)} km
               </p>
             </div>
             <a href="/station/${kiosk.id}" style="display: inline-block; margin-top: 8px; padding: 6px 12px; background-color: #06b6d4; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: 500;">
-              View Details
+              ${viewDetailsLabel}
             </a>
           </div>
         `,

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -97,6 +98,8 @@ type Tab = "kiosks" | "users" | "requests" | "expert-requests" | "admins";
 
 export default function Admin() {
   const { user, isAuthenticated, loading } = useAuth();
+  const { language } = useLanguage();
+  const isAr = language === "ar";
   const utils = trpc.useUtils();
 
   const [activeTab, setActiveTab] = useState<Tab>("kiosks");
@@ -549,7 +552,9 @@ export default function Admin() {
                                   req.status === "approved" ? "bg-green-100 text-green-700" :
                                   "bg-red-100 text-red-700"
                                 }>
-                                  {req.status}
+                                  {isAr
+                                    ? (req.status === "pending" ? "معلق" : req.status === "approved" ? "موافق" : "مرفوض")
+                                    : req.status}
                                 </Badge>
                                 <span className="text-xs text-gray-400">
                                   {new Date(req.createdAt).toLocaleDateString()}
@@ -814,7 +819,9 @@ export default function Admin() {
                                   req.status === "approved" ? "bg-green-100 text-green-700" :
                                   "bg-red-100 text-red-700"
                                 }>
-                                  {req.status}
+                                  {isAr
+                                    ? (req.status === "pending" ? "معلق" : req.status === "approved" ? "موافق" : "مرفوض")
+                                    : req.status}
                                 </Badge>
                                 <span className="text-xs text-gray-400">
                                   {new Date(req.createdAt).toLocaleDateString()}

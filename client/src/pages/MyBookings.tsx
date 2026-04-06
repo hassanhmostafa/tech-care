@@ -108,7 +108,7 @@ export default function MyBookings() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" dir={isAr ? "rtl" : "ltr"}>
+    <div className="min-h-screen flex flex-col">
       <Navigation />
 
       <main className="flex-1 container max-w-3xl py-10">
@@ -168,7 +168,7 @@ export default function MyBookings() {
                 : "No past bookings."}
             </p>
             {activeTab === "upcoming" && (
-              <Link href="/stations">
+              <Link href="/find-station">
                 <Button
                   variant="outline"
                   className="mt-4 border-cyan-300 text-cyan-600 hover:bg-cyan-50"

@@ -24,10 +24,13 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 function HoursEditor({
   value,
   onChange,
+  isAr,
 }: {
   value: HoursRow[];
   onChange: (v: HoursRow[]) => void;
+  isAr: boolean;
 }) {
+  const DAYS_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   const addRow = () => onChange([...value, { day: "Monday", open: "9:00 AM", close: "5:00 PM" }]);
   const removeRow = (i: number) => onChange(value.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: keyof HoursRow, val: string) => {
@@ -45,8 +48,8 @@ function HoursEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {DAYS.map((d) => (
-                <SelectItem key={d} value={d}>{d}</SelectItem>
+              {DAYS.map((d, idx) => (
+                <SelectItem key={d} value={d}>{isAr ? DAYS_AR[idx] : d}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -59,7 +62,7 @@ function HoursEditor({
         </div>
       ))}
       <Button type="button" variant="outline" size="sm" onClick={addRow} className="mt-1">
-        <Plus className="w-4 h-4 mr-1" /> Add Hours
+        <Plus className="w-4 h-4 mr-1" /> {isAr ? "إضافة وقت" : "Add Hours"}
       </Button>
     </div>
   );
@@ -68,9 +71,11 @@ function HoursEditor({
 function ServicesEditor({
   value,
   onChange,
+  isAr,
 }: {
   value: string[];
   onChange: (v: string[]) => void;
+  isAr: boolean;
 }) {
   const [input, setInput] = useState("");
   const add = () => {
@@ -89,7 +94,7 @@ function ServicesEditor({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-          placeholder="e.g. Blood Pressure"
+          placeholder={isAr ? "مثال: ضغط الدم" : "e.g. Blood Pressure"}
         />
         <Button type="button" variant="outline" onClick={add}><Plus className="w-4 h-4" /></Button>
       </div>
@@ -413,7 +418,9 @@ export default function MyKiosks() {
                         booking.status === "completed" ? "bg-green-100 text-green-700" :
                         "bg-red-100 text-red-700"
                       }>
-                        {booking.status}
+                        {isAr
+                          ? (booking.status === "confirmed" ? "مؤكد" : booking.status === "completed" ? "مكتمل" : "ملغى")
+                          : booking.status}
                       </Badge>
                       {booking.status === "confirmed" && (
                         <>
@@ -518,6 +525,7 @@ export default function MyKiosks() {
                 <HoursEditor
                   value={editForm.hours}
                   onChange={(v) => setEditForm({ ...editForm, hours: v })}
+                  isAr={isAr}
                 />
               </div>
 
@@ -526,6 +534,7 @@ export default function MyKiosks() {
                 <ServicesEditor
                   value={editForm.services}
                   onChange={(v) => setEditForm({ ...editForm, services: v })}
+                  isAr={isAr}
                 />
               </div>
             </div>

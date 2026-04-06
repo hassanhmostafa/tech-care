@@ -185,3 +185,17 @@
 
 ## Fix: Language switch should not mirror/flip page layout
 - [x] Remove RTL dir switching — keep layout always LTR, only text language changes
+
+## Full Bilingual Coverage
+- [ ] Audit all pages/components for hardcoded English strings
+- [ ] Add all missing keys to LanguageContext (en + ar)
+- [ ] Update KioskRequests page
+- [ ] Update FindStation page
+- [ ] Update MyKiosks page
+- [ ] Update Bookings page
+- [ ] Update Navigation/Footer components
+- [ ] Update Admin page
+- [ ] Update MyHealth page
+- [ ] Update Home page remaining strings
+- [ ] Update AIPlan page
+- [ ] Update Experts page

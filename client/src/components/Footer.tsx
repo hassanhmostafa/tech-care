@@ -3,7 +3,8 @@ import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Footer() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isAr = language === "ar";
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="container py-16">
@@ -35,21 +36,21 @@ export default function Footer() {
               <li>
                 <Link href="/about">
                   <span className="text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer">
-                    About Us
+                    {isAr ? "من نحن" : "About Us"}
                   </span>
                 </Link>
               </li>
               <li>
                 <Link href="/services">
                   <span className="text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer">
-                    Services
+                    {isAr ? "الخدمات" : "Services"}
                   </span>
                 </Link>
               </li>
               <li>
                 <Link href="/contact">
                   <span className="text-gray-400 hover:text-cyan-400 transition-colors cursor-pointer">
-                    Contact
+                    {isAr ? "تواصل معنا" : "Contact"}
                   </span>
                 </Link>
               </li>
@@ -70,14 +71,14 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 mt-0.5 text-cyan-400 flex-shrink-0" />
-                <span className="text-gray-400">Jeddah, Saudi Arabia</span>
+                <span className="text-gray-400">{isAr ? "جدة، المملكة العربية السعودية" : "Jeddah, Saudi Arabia"}</span>
               </li>
             </ul>
           </div>
 
           {/* Social */}
           <div>
-            <h3 className="font-semibold text-white mb-4">Follow Us</h3>
+            <h3 className="font-semibold text-white mb-4">{isAr ? "تابعنا" : "Follow Us"}</h3>
             <div className="flex gap-4">
               <a
                 href="#"
@@ -107,13 +108,13 @@ export default function Footer() {
             <p>&copy; 2026 Tech Care. {t.footer_rights}</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-cyan-400 transition-colors">
-                Privacy Policy
+                {isAr ? "سياسة الخصوصية" : "Privacy Policy"}
               </a>
               <a href="#" className="hover:text-cyan-400 transition-colors">
-                Terms of Service
+                {isAr ? "شروط الخدمة" : "Terms of Service"}
               </a>
               <a href="#" className="hover:text-cyan-400 transition-colors">
-                Cookie Policy
+                {isAr ? "سياسة ملفات تعريف الارتباط" : "Cookie Policy"}
               </a>
             </div>
           </div>

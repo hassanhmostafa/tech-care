@@ -19,9 +19,12 @@ import { Link, useSearch } from "wouter";
 import Navigation from "@/components/Navigation";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function ExpertInbox() {
   const { user, isAuthenticated, loading } = useAuth();
+  const { language } = useLanguage();
+  const isAr = language === "ar";
   const searchStr = useSearch();
   const params = new URLSearchParams(searchStr);
   const initialConvId = params.get("conv") ? Number(params.get("conv")) : null;
@@ -36,7 +39,6 @@ export default function ExpertInbox() {
 
   const isExpert = user?.role === "expert";
 
-  // Load conversations list
   const { data: conversations, isLoading: convsLoading } = trpc.chat.myConversations.useQuery(undefined, {
     enabled: isAuthenticated && !isExpert,
     refetchInterval: 10000,
@@ -50,7 +52,6 @@ export default function ExpertInbox() {
   const convList = isExpert ? expertConversations : conversations;
   const convsLoadingState = isExpert ? expertConvsLoading : convsLoading;
 
-  // Load messages for selected conversation
   const { data: messages, isLoading: msgsLoading } = trpc.chat.getMessages.useQuery(
     { conversationId: selectedConvId! },
     {
@@ -71,15 +72,13 @@ export default function ExpertInbox() {
   });
 
   const uploadFile = trpc.chat.uploadFile.useMutation({
-    onError: (e) => toast.error(`Upload failed: ${e.message}`),
+    onError: (e) => toast.error(`${isAr ? "فشل الرفع" : "Upload failed"}: ${e.message}`),
   });
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-select first conversation if none selected
   useEffect(() => {
     if (!selectedConvId && convList && convList.length > 0) {
       setSelectedConvId(convList[0].id);
@@ -90,7 +89,6 @@ export default function ExpertInbox() {
     if ((!messageText.trim() && !pendingFile) || !selectedConvId) return;
 
     if (pendingFile) {
-      // Upload file first, then send message with fileUrl
       setIsUploading(true);
       try {
         const result = await uploadFile.mutateAsync({
@@ -124,30 +122,26 @@ export default function ExpertInbox() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Limit to PDF and images, max 10 MB
     const allowed = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.type)) {
-      toast.error("Only PDF and image files are supported");
+      toast.error(isAr ? "يُدعم فقط ملفات PDF والصور" : "Only PDF and image files are supported");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("File must be under 10 MB");
+      toast.error(isAr ? "يجب أن يكون الملف أقل من 10 ميغابايت" : "File must be under 10 MB");
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      // Strip the data URL prefix to get raw base64
       const base64 = dataUrl.split(",")[1];
       setPendingFile({ name: file.name, base64, mimeType: file.type });
     };
     reader.readAsDataURL(file);
-    // Reset input so the same file can be re-selected
     e.target.value = "";
   };
 
-  // Type-safe accessors for the two different conversation shapes
   type UserConv = { id: number; expertId: number; lastMessageAt: Date; expertName: string | null; expertSpecialty: string | null };
   type ExpertConv = { id: number; userId: number; lastMessageAt: Date; userName: string | null; userEmail: string | null };
 
@@ -174,9 +168,13 @@ export default function ExpertInbox() {
           <Card className="max-w-md w-full mx-4">
             <CardContent className="pt-8 pb-8 text-center">
               <MessageCircle className="w-12 h-12 text-cyan-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Sign in to view messages</h2>
+              <h2 className="text-xl font-semibold mb-2">
+                {isAr ? "سجّل الدخول لعرض الرسائل" : "Sign in to view messages"}
+              </h2>
               <a href={getLoginUrl()}>
-                <Button className="bg-cyan-500 hover:bg-cyan-600">Sign In</Button>
+                <Button className="bg-cyan-500 hover:bg-cyan-600">
+                  {isAr ? "تسجيل الدخول" : "Sign In"}
+                </Button>
               </a>
             </CardContent>
           </Card>
@@ -190,7 +188,7 @@ export default function ExpertInbox() {
       <div className="min-h-screen flex flex-col">
         <Navigation />
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-500">Access denied.</p>
+          <p className="text-gray-500">{isAr ? "غير مصرح بالوصول." : "Access denied."}</p>
         </div>
       </div>
     );
@@ -211,12 +209,14 @@ export default function ExpertInbox() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">
-                  {isExpert ? "Expert Inbox" : "My Conversations"}
+                  {isExpert
+                    ? (isAr ? "صندوق وارد الخبير" : "Expert Inbox")
+                    : (isAr ? "محادثاتي" : "My Conversations")}
                 </h1>
                 <p className="text-teal-200 text-sm">
                   {isExpert
-                    ? "Respond to users seeking health guidance"
-                    : "Your conversations with health experts"}
+                    ? (isAr ? "الرد على المستخدمين الباحثين عن إرشادات صحية" : "Respond to users seeking health guidance")
+                    : (isAr ? "محادثاتك مع خبراء الصحة" : "Your conversations with health experts")}
                 </p>
               </div>
             </div>
@@ -230,7 +230,7 @@ export default function ExpertInbox() {
                 <Link href="/experts">
                   <Button variant="outline" size="sm" className="text-teal-600 border-teal-200 hover:bg-teal-50">
                     <Stethoscope className="w-4 h-4 mr-1" />
-                    Find More Experts
+                    {isAr ? "البحث عن مزيد من الخبراء" : "Find More Experts"}
                   </Button>
                 </Link>
               </div>
@@ -243,16 +243,25 @@ export default function ExpertInbox() {
             ) : !convList || convList.length === 0 ? (
               <div className="text-center py-20">
                 <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h2 className="text-lg font-semibold text-gray-700 mb-2">No conversations yet</h2>
+                <h2 className="text-lg font-semibold text-gray-700 mb-2">
+                  {isAr ? "لا توجد محادثات بعد" : "No conversations yet"}
+                </h2>
                 {!isExpert && (
                   <p className="text-gray-500 text-sm mb-6">
-                    Start a conversation by messaging an expert from the{" "}
-                    <Link href="/experts" className="text-teal-600 underline">Find Experts</Link> page.
+                    {isAr ? (
+                      <>ابدأ محادثة بمراسلة خبير من صفحة{" "}
+                        <Link href="/experts" className="text-teal-600 underline">البحث عن الخبراء</Link>.
+                      </>
+                    ) : (
+                      <>Start a conversation by messaging an expert from the{" "}
+                        <Link href="/experts" className="text-teal-600 underline">Find Experts</Link> page.
+                      </>
+                    )}
                   </p>
                 )}
                 {isExpert && (
                   <p className="text-gray-500 text-sm">
-                    Users will appear here when they message you.
+                    {isAr ? "سيظهر المستخدمون هنا عندما يراسلونك." : "Users will appear here when they message you."}
                   </p>
                 )}
               </div>
@@ -262,7 +271,7 @@ export default function ExpertInbox() {
                 <div className="md:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-y-auto">
                   <div className="p-3 border-b border-gray-100">
                     <p className="text-sm font-semibold text-gray-700">
-                      {isExpert ? "Users" : "Experts"} ({convList.length})
+                      {isExpert ? (isAr ? "المستخدمون" : "Users") : (isAr ? "الخبراء" : "Experts")} ({convList.length})
                     </p>
                   </div>
                   <div className="divide-y divide-gray-50">
@@ -285,13 +294,13 @@ export default function ExpertInbox() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">
-                                {other || "Unknown"}
+                                {other || (isAr ? "مجهول" : "Unknown")}
                               </p>
                               {specialty && (
                                 <p className="text-xs text-teal-600 truncate">{specialty}</p>
                               )}
                               <p className="text-xs text-gray-400">
-                                {new Date(conv.lastMessageAt).toLocaleDateString()}
+                                {new Date(conv.lastMessageAt).toLocaleDateString(isAr ? "ar-SA" : "en-US")}
                               </p>
                             </div>
                           </div>
@@ -307,7 +316,7 @@ export default function ExpertInbox() {
                     <div className="flex-1 flex items-center justify-center text-gray-400">
                       <div className="text-center">
                         <MessageCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm">Select a conversation</p>
+                        <p className="text-sm">{isAr ? "اختر محادثة" : "Select a conversation"}</p>
                       </div>
                     </div>
                   ) : (
@@ -319,7 +328,9 @@ export default function ExpertInbox() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">
-                            {selectedConv ? getOtherName(selectedConv as UserConv | ExpertConv) || (isExpert ? "User" : "Expert") : (isExpert ? "User" : "Expert")}
+                            {selectedConv
+                              ? getOtherName(selectedConv as UserConv | ExpertConv) || (isExpert ? (isAr ? "مستخدم" : "User") : (isAr ? "خبير" : "Expert"))
+                              : (isExpert ? (isAr ? "مستخدم" : "User") : (isAr ? "خبير" : "Expert"))}
                           </p>
                           {!isExpert && selectedConv && getSpecialty(selectedConv as UserConv | ExpertConv) && (
                             <Badge className="bg-teal-100 text-teal-700 border-teal-200 text-xs">
@@ -337,7 +348,7 @@ export default function ExpertInbox() {
                           </div>
                         ) : !messages || messages.length === 0 ? (
                           <div className="text-center py-8 text-gray-400">
-                            <p className="text-sm">No messages yet. Say hello!</p>
+                            <p className="text-sm">{isAr ? "لا توجد رسائل بعد. قل مرحباً!" : "No messages yet. Say hello!"}</p>
                           </div>
                         ) : (
                           messages.map((msg) => {
@@ -354,11 +365,9 @@ export default function ExpertInbox() {
                                       : "bg-gray-100 text-gray-800 rounded-bl-sm"
                                   }`}
                                 >
-                                  {/* Text content */}
                                   {msg.content && (
                                     <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                                   )}
-                                  {/* File attachment */}
                                   {msg.fileUrl && (
                                     <a
                                       href={msg.fileUrl}
@@ -372,12 +381,12 @@ export default function ExpertInbox() {
                                     >
                                       <FileText className="w-4 h-4 flex-shrink-0" />
                                       <span className="truncate max-w-[180px]">
-                                        {msg.fileName || "Attachment"}
+                                        {msg.fileName || (isAr ? "مرفق" : "Attachment")}
                                       </span>
                                     </a>
                                   )}
                                   <p className={`text-xs mt-1 ${isMine ? "text-teal-200" : "text-gray-400"}`}>
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                    {new Date(msg.createdAt).toLocaleTimeString(isAr ? "ar-SA" : "en-US", { hour: "2-digit", minute: "2-digit" })}
                                   </p>
                                 </div>
                               </div>
@@ -406,7 +415,6 @@ export default function ExpertInbox() {
                       {/* Input */}
                       <div className="p-4 border-t border-gray-100">
                         <div className="flex gap-2 items-end">
-                          {/* Hidden file input */}
                           <input
                             ref={fileInputRef}
                             type="file"
@@ -414,20 +422,19 @@ export default function ExpertInbox() {
                             className="hidden"
                             onChange={handleFileChange}
                           />
-                          {/* Attach button */}
                           <Button
                             variant="outline"
                             size="sm"
                             className="self-end border-gray-200 text-gray-500 hover:text-teal-600 hover:border-teal-300"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isSending}
-                            title="Attach PDF or image"
+                            title={isAr ? "إرفاق PDF أو صورة" : "Attach PDF or image"}
                           >
                             <Paperclip className="w-4 h-4" />
                           </Button>
                           <Textarea
                             className="flex-1 resize-none min-h-[44px] max-h-32 text-sm"
-                            placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+                            placeholder={isAr ? "اكتب رسالة... (Enter للإرسال، Shift+Enter لسطر جديد)" : "Type a message… (Enter to send, Shift+Enter for new line)"}
                             value={messageText}
                             onChange={(e) => setMessageText(e.target.value)}
                             onKeyDown={handleKeyDown}
@@ -447,7 +454,7 @@ export default function ExpertInbox() {
                           </Button>
                         </div>
                         <p className="text-xs text-gray-400 mt-1.5">
-                          Attach PDF or image files up to 10 MB
+                          {isAr ? "إرفاق ملفات PDF أو صور حتى 10 ميغابايت" : "Attach PDF or image files up to 10 MB"}
                         </p>
                       </div>
                     </>

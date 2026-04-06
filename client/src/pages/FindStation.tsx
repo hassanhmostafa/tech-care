@@ -99,7 +99,7 @@ export default function FindStation() {
               {/* Map */}
               <div className="lg:col-span-2">
                 <Card className="overflow-hidden border-0 shadow-lg h-[600px]">
-                  <KioskMap kiosks={kiosks} selectedKiosk={selectedKiosk} />
+                  <KioskMap kiosks={kiosks} selectedKiosk={selectedKiosk} language={language} />
                 </Card>
               </div>
 

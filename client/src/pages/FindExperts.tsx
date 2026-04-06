@@ -11,11 +11,14 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function FindExperts() {
   const { user, isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
+  const { language } = useLanguage();
+  const isAr = language === "ar";
 
   const { data: experts, isLoading } = trpc.chat.listExperts.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -57,10 +60,18 @@ export default function FindExperts() {
           <Card className="max-w-md w-full mx-4">
             <CardContent className="pt-8 pb-8 text-center">
               <Stethoscope className="w-12 h-12 text-cyan-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Sign in to Talk to Experts</h2>
-              <p className="text-gray-500 mb-6">You need to be signed in to browse and message health experts.</p>
+              <h2 className="text-xl font-semibold mb-2">
+                {isAr ? "سجّل الدخول للتحدث مع الخبراء" : "Sign in to Talk to Experts"}
+              </h2>
+              <p className="text-gray-500 mb-6">
+                {isAr
+                  ? "تحتاج إلى تسجيل الدخول لتصفح خبراء الصحة والتواصل معهم."
+                  : "You need to be signed in to browse and message health experts."}
+              </p>
               <a href={getLoginUrl()}>
-                <Button className="bg-cyan-500 hover:bg-cyan-600">Sign In</Button>
+                <Button className="bg-cyan-500 hover:bg-cyan-600">
+                  {isAr ? "تسجيل الدخول" : "Sign In"}
+                </Button>
               </a>
             </CardContent>
           </Card>
@@ -81,16 +92,20 @@ export default function FindExperts() {
               <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
                 <Stethoscope className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-3xl font-bold">Talk to an Expert</h1>
+              <h1 className="text-3xl font-bold">
+                {isAr ? "تحدث مع خبير" : "Talk to an Expert"}
+              </h1>
             </div>
             <p className="text-teal-200 mb-6">
-              Connect with certified health professionals for personalized advice on your wellness journey.
+              {isAr
+                ? "تواصل مع متخصصين صحيين معتمدين للحصول على نصائح شخصية في رحلتك الصحية."
+                : "Connect with certified health professionals for personalized advice on your wellness journey."}
             </p>
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 className="pl-9 bg-white text-gray-900 border-0"
-                placeholder="Search by name or specialty…"
+                placeholder={isAr ? "ابحث بالاسم أو التخصص..." : "Search by name or specialty…"}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -108,17 +123,19 @@ export default function FindExperts() {
               <div className="text-center py-20">
                 <Stethoscope className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <h2 className="text-lg font-semibold text-gray-700 mb-2">
-                  {search ? "No experts match your search" : "No experts available yet"}
+                  {search
+                    ? (isAr ? "لا يوجد خبراء يطابقون بحثك" : "No experts match your search")
+                    : (isAr ? "لا يوجد خبراء متاحون بعد" : "No experts available yet")}
                 </h2>
                 <p className="text-gray-500 text-sm mb-6">
                   {search
-                    ? "Try a different keyword or specialty."
-                    : "Check back soon — experts are being onboarded."}
+                    ? (isAr ? "جرّب كلمة مفتاحية أو تخصصاً مختلفاً." : "Try a different keyword or specialty.")
+                    : (isAr ? "تحقق لاحقاً — يجري إضافة الخبراء قريباً." : "Check back soon — experts are being onboarded.")}
                 </p>
                 {!search && user?.role === "user" && (
                   <Link href="/expert-registration">
                     <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50">
-                      Apply to Become an Expert
+                      {isAr ? "التقدم لتصبح خبيراً" : "Apply to Become an Expert"}
                     </Button>
                   </Link>
                 )}
@@ -134,9 +151,11 @@ export default function FindExperts() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <h3 className="font-semibold text-gray-900">{expert.name || "Expert"}</h3>
+                            <h3 className="font-semibold text-gray-900">
+                              {expert.name || (isAr ? "خبير" : "Expert")}
+                            </h3>
                             <Badge className="bg-teal-100 text-teal-700 border-teal-200 text-xs">
-                              {expert.specialty || "Health Expert"}
+                              {expert.specialty || (isAr ? "خبير صحي" : "Health Expert")}
                             </Badge>
                           </div>
                           {expert.bio && (
@@ -153,7 +172,9 @@ export default function FindExperts() {
                             ) : (
                               <MessageCircle className="w-3 h-3 mr-1" />
                             )}
-                            {user?.id === expert.id ? "That's you" : "Message"}
+                            {user?.id === expert.id
+                              ? (isAr ? "أنت هذا الخبير" : "That's you")
+                              : (isAr ? "مراسلة" : "Message")}
                           </Button>
                         </div>
                       </div>
@@ -167,11 +188,17 @@ export default function FindExperts() {
             {user?.role === "user" && (
               <div className="mt-10 p-6 bg-teal-50 rounded-xl border border-teal-100 text-center">
                 <Stethoscope className="w-8 h-8 text-teal-500 mx-auto mb-2" />
-                <h3 className="font-semibold text-teal-800 mb-1">Are you a health professional?</h3>
-                <p className="text-sm text-teal-600 mb-4">Apply to join as an expert and help users on their wellness journey.</p>
+                <h3 className="font-semibold text-teal-800 mb-1">
+                  {isAr ? "هل أنت متخصص صحي؟" : "Are you a health professional?"}
+                </h3>
+                <p className="text-sm text-teal-600 mb-4">
+                  {isAr
+                    ? "تقدم للانضمام كخبير وساعد المستخدمين في رحلتهم الصحية."
+                    : "Apply to join as an expert and help users on their wellness journey."}
+                </p>
                 <Link href="/expert-registration">
                   <Button variant="outline" className="border-teal-400 text-teal-700 hover:bg-teal-100">
-                    Apply as Expert
+                    {isAr ? "التقدم كخبير" : "Apply as Expert"}
                   </Button>
                 </Link>
               </div>

@@ -11,10 +11,13 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function StationDetail() {
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const isAr = language === "ar";
 
   // Booking dialog state
   const [showBooking, setShowBooking] = useState(false);
@@ -30,13 +33,11 @@ export default function StationDetail() {
     { enabled: !!id }
   );
 
-  // Generate today's date string and min date for date picker
   const today = useMemo(() => {
     const d = new Date();
     return d.toISOString().split("T")[0];
   }, []);
 
-  // Max date: 30 days from today
   const maxDate = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
@@ -104,10 +105,10 @@ export default function StationDetail() {
         <Navigation />
         <main className="flex-1 pt-20 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-2">Station Not Found</h1>
-            <p className="text-gray-600 mb-4">The station you are looking for does not exist.</p>
+            <h1 className="text-2xl font-bold mb-2">{isAr ? "المحطة غير موجودة" : "Station Not Found"}</h1>
+            <p className="text-gray-600 mb-4">{isAr ? "المحطة التي تبحث عنها غير موجودة." : "The station you are looking for does not exist."}</p>
             <Link href="/find-station">
-              <Button className="bg-cyan-500 hover:bg-cyan-600">Back to Stations</Button>
+              <Button className="bg-cyan-500 hover:bg-cyan-600">{isAr ? "العودة إلى المحطات" : "Back to Stations"}</Button>
             </Link>
           </div>
         </main>
@@ -142,7 +143,7 @@ export default function StationDetail() {
             <Link href="/find-station">
               <Button variant="ghost" className="text-white hover:bg-white/20 mb-4">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Stations
+                {isAr ? "العودة إلى المحطات" : "Back to Stations"}
               </Button>
             </Link>
             <h1 className="text-4xl font-bold mb-2">{kiosk.name}</h1>
@@ -165,20 +166,20 @@ export default function StationDetail() {
 
                 {/* About */}
                 <Card className="p-8 border-0 shadow-lg">
-                  <h2 className="text-2xl font-bold mb-4">About This Station</h2>
+                  <h2 className="text-2xl font-bold mb-4">{isAr ? "عن هذه المحطة" : "About This Station"}</h2>
                   <p className="text-gray-600 leading-relaxed mb-6">
-                    This health screening station is equipped with state-of-the-art medical devices to provide
-                    comprehensive health assessments. Our trained staff is available to assist you with all your
-                    screening needs.
+                    {isAr
+                      ? "محطة الفحص الصحي هذه مجهزة بأحدث الأجهزة الطبية لتقديم تقييمات صحية شاملة. طاقمنا المدرب متاح لمساعدتك في جميع احتياجات الفحص."
+                      : "This health screening station is equipped with state-of-the-art medical devices to provide comprehensive health assessments. Our trained staff is available to assist you with all your screening needs."}
                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-cyan-50 rounded-lg">
                       <div className="text-3xl font-bold text-cyan-600 mb-1">{services.length}</div>
-                      <div className="text-sm text-gray-600">Services Available</div>
+                      <div className="text-sm text-gray-600">{isAr ? "خدمة متاحة" : "Services Available"}</div>
                     </div>
                     <div className="p-4 bg-cyan-50 rounded-lg">
                       <div className="text-3xl font-bold text-cyan-600 mb-1">{kiosk.rating ?? "N/A"}</div>
-                      <div className="text-sm text-gray-600">Customer Rating</div>
+                      <div className="text-sm text-gray-600">{isAr ? "تقييم العملاء" : "Customer Rating"}</div>
                     </div>
                   </div>
                 </Card>
@@ -186,7 +187,7 @@ export default function StationDetail() {
                 {/* Services */}
                 {services.length > 0 && (
                   <Card className="p-8 border-0 shadow-lg">
-                    <h2 className="text-2xl font-bold mb-6">Available Services</h2>
+                    <h2 className="text-2xl font-bold mb-6">{isAr ? "الخدمات المتاحة" : "Available Services"}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {services.map((service: string, idx: number) => {
                         const Icon = serviceIcons[idx % serviceIcons.length];
@@ -197,7 +198,7 @@ export default function StationDetail() {
                             </div>
                             <div>
                               <h3 className="font-semibold text-gray-900">{service}</h3>
-                              <p className="text-sm text-gray-600">Professional measurement</p>
+                              <p className="text-sm text-gray-600">{isAr ? "قياس احترافي" : "Professional measurement"}</p>
                             </div>
                           </div>
                         );
@@ -209,7 +210,7 @@ export default function StationDetail() {
                 {/* Operating Hours */}
                 {hours.length > 0 && (
                   <Card className="p-8 border-0 shadow-lg">
-                    <h2 className="text-2xl font-bold mb-6">Operating Hours</h2>
+                    <h2 className="text-2xl font-bold mb-6">{isAr ? "ساعات العمل" : "Operating Hours"}</h2>
                     <div className="space-y-3">
                       {hours.map((hour: { day: string; open: string; close: string }, idx: number) => (
                         <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
@@ -228,12 +229,12 @@ export default function StationDetail() {
               <div className="space-y-6">
                 {/* Contact Card */}
                 <Card className="p-6 border-0 shadow-lg sticky top-24">
-                  <h3 className="text-xl font-bold mb-6">Contact Information</h3>
+                  <h3 className="text-xl font-bold mb-6">{isAr ? "معلومات التواصل" : "Contact Information"}</h3>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
                       <MapPin className="w-5 h-5 text-cyan-600 mt-1 flex-shrink-0" />
                       <div>
-                        <p className="text-sm text-gray-600">Address</p>
+                        <p className="text-sm text-gray-600">{isAr ? "العنوان" : "Address"}</p>
                         <p className="font-medium text-gray-900">{kiosk.address}</p>
                       </div>
                     </div>
@@ -242,7 +243,7 @@ export default function StationDetail() {
                       <div className="flex items-start gap-3">
                         <Phone className="w-5 h-5 text-cyan-600 mt-1 flex-shrink-0" />
                         <div>
-                          <p className="text-sm text-gray-600">Phone</p>
+                          <p className="text-sm text-gray-600">{isAr ? "الهاتف" : "Phone"}</p>
                           <a href={`tel:${kiosk.phone}`} className="font-medium text-cyan-600 hover:text-cyan-700">
                             {kiosk.phone}
                           </a>
@@ -254,7 +255,7 @@ export default function StationDetail() {
                       <div className="flex items-start gap-3">
                         <Heart className="w-5 h-5 text-cyan-600 mt-1 flex-shrink-0" />
                         <div>
-                          <p className="text-sm text-gray-600">Email</p>
+                          <p className="text-sm text-gray-600">{isAr ? "البريد الإلكتروني" : "Email"}</p>
                           <a
                             href={`mailto:${kiosk.email}`}
                             className="font-medium text-cyan-600 hover:text-cyan-700 break-all"
@@ -272,7 +273,7 @@ export default function StationDetail() {
                       onClick={handleOpenBooking}
                     >
                       <CalendarDays className="w-4 h-4 mr-2" />
-                      Book Screening
+                      {isAr ? "احجز فحصاً" : "Book Screening"}
                     </Button>
                     <Button
                       variant="outline"
@@ -281,7 +282,7 @@ export default function StationDetail() {
                       disabled={!lat || !lng}
                     >
                       <MapPin className="w-4 h-4 mr-2" />
-                      Get Directions
+                      {isAr ? "الحصول على الاتجاهات" : "Get Directions"}
                     </Button>
                   </div>
                 </Card>
@@ -289,7 +290,7 @@ export default function StationDetail() {
                 {/* Rating */}
                 {kiosk.rating && (
                   <Card className="p-6 border-0 shadow-lg">
-                    <h3 className="text-lg font-bold mb-4">Customer Rating</h3>
+                    <h3 className="text-lg font-bold mb-4">{isAr ? "تقييم العملاء" : "Customer Rating"}</h3>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="flex gap-1">
                         {[...Array(5)].map((_, i) => (
@@ -303,18 +304,18 @@ export default function StationDetail() {
                       </div>
                       <span className="text-2xl font-bold text-gray-900">{kiosk.rating}</span>
                     </div>
-                    <p className="text-sm text-gray-600">Based on customer reviews</p>
+                    <p className="text-sm text-gray-600">{isAr ? "بناءً على تقييمات العملاء" : "Based on customer reviews"}</p>
                   </Card>
                 )}
 
                 {/* Tips */}
                 <Card className="p-6 border-0 shadow-lg bg-cyan-50">
-                  <h3 className="font-bold text-gray-900 mb-3">Quick Tips</h3>
+                  <h3 className="font-bold text-gray-900 mb-3">{isAr ? "نصائح سريعة" : "Quick Tips"}</h3>
                   <ul className="text-sm text-gray-700 space-y-2">
-                    <li>✓ Screenings are completely free</li>
-                    <li>✓ Book a slot to avoid waiting</li>
-                    <li>✓ Results available immediately</li>
-                    <li>✓ Privacy fully protected</li>
+                    <li>✓ {isAr ? "الفحوصات مجانية تماماً" : "Screenings are completely free"}</li>
+                    <li>✓ {isAr ? "احجز موعداً لتجنب الانتظار" : "Book a slot to avoid waiting"}</li>
+                    <li>✓ {isAr ? "النتائج متاحة فوراً" : "Results available immediately"}</li>
+                    <li>✓ {isAr ? "خصوصيتك محمية بالكامل" : "Privacy fully protected"}</li>
                   </ul>
                 </Card>
               </div>
@@ -325,9 +326,11 @@ export default function StationDetail() {
         {/* CTA */}
         <section className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-12 mt-12">
           <div className="container text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready for Your Health Screening?</h2>
+            <h2 className="text-3xl font-bold mb-4">{isAr ? "هل أنت مستعد لفحصك الصحي؟" : "Ready for Your Health Screening?"}</h2>
             <p className="text-cyan-50 mb-6 max-w-2xl mx-auto">
-              Visit {kiosk.name} today with Tech Care and take the first step towards better health
+              {isAr
+                ? `زُر ${kiosk.name} اليوم مع Tech Care وابدأ خطوتك الأولى نحو صحة أفضل`
+                : `Visit ${kiosk.name} today with Tech Care and take the first step towards better health`}
             </p>
             <div className="flex gap-4 justify-center">
               <Button
@@ -336,7 +339,7 @@ export default function StationDetail() {
                 onClick={handleOpenBooking}
               >
                 <CalendarDays className="w-4 h-4 mr-2" />
-                Book a Slot
+                {isAr ? "احجز موعداً" : "Book a Slot"}
               </Button>
               <Button
                 size="lg"
@@ -346,7 +349,7 @@ export default function StationDetail() {
                 disabled={!lat || !lng}
               >
                 <MapPin className="w-4 h-4 mr-2" />
-                Get Directions
+                {isAr ? "الحصول على الاتجاهات" : "Get Directions"}
               </Button>
             </div>
           </div>
@@ -361,22 +364,22 @@ export default function StationDetail() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-cyan-500" />
-              Book a Screening Slot
+              {isAr ? "احجز موعد فحص" : "Book a Screening Slot"}
             </DialogTitle>
           </DialogHeader>
 
           {bookingSuccess ? (
             <div className="py-8 text-center space-y-4">
               <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
-              <h3 className="text-xl font-bold text-gray-900">Booking Confirmed!</h3>
+              <h3 className="text-xl font-bold text-gray-900">{isAr ? "تم تأكيد الحجز!" : "Booking Confirmed!"}</h3>
               <p className="text-gray-600">
-                Your screening slot at <span className="font-semibold">{kiosk.name}</span> has been booked for{" "}
-                <span className="font-semibold">{selectedDate}</span> at{" "}
-                <span className="font-semibold">{selectedSlot}</span>.
+                {isAr
+                  ? <>تم حجز موعد فحصك في <span className="font-semibold">{kiosk.name}</span> بتاريخ <span className="font-semibold">{selectedDate}</span> الساعة <span className="font-semibold">{selectedSlot}</span>.</>
+                  : <>Your screening slot at <span className="font-semibold">{kiosk.name}</span> has been booked for{" "}<span className="font-semibold">{selectedDate}</span> at{" "}<span className="font-semibold">{selectedSlot}</span>.</>}
               </p>
-              <p className="text-sm text-gray-500">You can view your bookings in your profile.</p>
+              <p className="text-sm text-gray-500">{isAr ? "يمكنك عرض حجوزاتك في ملفك الشخصي." : "You can view your bookings in your profile."}</p>
               <Button className="bg-cyan-500 hover:bg-cyan-600" onClick={handleCloseBooking}>
-                Done
+                {isAr ? "تم" : "Done"}
               </Button>
             </div>
           ) : (
@@ -384,7 +387,7 @@ export default function StationDetail() {
               <div className="space-y-5 py-2">
                 {/* Date picker */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Select Date</label>
+                  <label className="text-sm font-medium text-gray-700">{isAr ? "اختر التاريخ" : "Select Date"}</label>
                   <input
                     type="date"
                     min={today}
@@ -401,21 +404,21 @@ export default function StationDetail() {
                 {/* Time slots */}
                 {selectedDate && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Select Time Slot</label>
+                    <label className="text-sm font-medium text-gray-700">{isAr ? "اختر الوقت" : "Select Time Slot"}</label>
                     {slotsLoading ? (
                       <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Loading available slots…
+                        {isAr ? "جارٍ تحميل المواعيد المتاحة..." : "Loading available slots…"}
                       </div>
                     ) : slotData?.closed ? (
                       <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
                         <AlertCircle className="w-4 h-4 shrink-0" />
-                        This station is closed on the selected day.
+                        {isAr ? "المحطة مغلقة في اليوم المحدد." : "This station is closed on the selected day."}
                       </div>
                     ) : !slotData?.slots || slotData.slots.length === 0 ? (
                       <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 p-3 rounded-md">
                         <AlertCircle className="w-4 h-4 shrink-0" />
-                        No available slots for this date. Please try another day.
+                        {isAr ? "لا توجد مواعيد متاحة لهذا اليوم. يرجى تجربة يوم آخر." : "No available slots for this date. Please try another day."}
                       </div>
                     ) : (
                       <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
@@ -441,11 +444,11 @@ export default function StationDetail() {
                 {/* Optional notes */}
                 {selectedSlot && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Notes (optional)</label>
+                    <label className="text-sm font-medium text-gray-700">{isAr ? "ملاحظات (اختياري)" : "Notes (optional)"}</label>
                     <textarea
                       value={bookingNotes}
                       onChange={(e) => setBookingNotes(e.target.value)}
-                      placeholder="Any special requirements or notes…"
+                      placeholder={isAr ? "أي متطلبات أو ملاحظات خاصة..." : "Any special requirements or notes…"}
                       rows={2}
                       className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 resize-none"
                     />
@@ -455,7 +458,7 @@ export default function StationDetail() {
                 {/* Summary */}
                 {selectedDate && selectedSlot && (
                   <div className="bg-cyan-50 border border-cyan-200 rounded-md p-3 text-sm">
-                    <p className="font-medium text-cyan-800">Booking Summary</p>
+                    <p className="font-medium text-cyan-800">{isAr ? "ملخص الحجز" : "Booking Summary"}</p>
                     <p className="text-cyan-700 mt-1">
                       {kiosk.name} · {selectedDate} · {selectedSlot}
                     </p>
@@ -464,14 +467,14 @@ export default function StationDetail() {
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={handleCloseBooking}>Cancel</Button>
+                <Button variant="outline" onClick={handleCloseBooking}>{isAr ? "إلغاء" : "Cancel"}</Button>
                 <Button
                   className="bg-cyan-500 hover:bg-cyan-600"
                   onClick={handleBook}
                   disabled={!selectedDate || !selectedSlot || bookMutation.isPending}
                 >
                   {bookMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Confirm Booking
+                  {isAr ? "تأكيد الحجز" : "Confirm Booking"}
                 </Button>
               </DialogFooter>
             </>
