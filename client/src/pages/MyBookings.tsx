@@ -95,7 +95,7 @@ export default function MyBookings() {
                 ? "تحتاج إلى تسجيل الدخول لعرض حجوزاتك."
                 : "You need to be signed in to view your bookings."}
             </p>
-            <a href={getLoginUrl()}>
+            <a href="/login">
               <Button className="bg-cyan-500 hover:bg-cyan-600 text-white">
                 {isAr ? "تسجيل الدخول" : "Sign In"}
               </Button>

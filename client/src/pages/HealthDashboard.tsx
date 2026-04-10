@@ -603,7 +603,7 @@ export default function HealthDashboard() {
             <Heart className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">{t.health_title}</h1>
             <p className="text-gray-600 mb-6">{t.health_signInPrompt}</p>
-            <a href={getLoginUrl()}>
+            <a href="/login">
               <Button className="bg-cyan-500 hover:bg-cyan-600">
                 <LogIn className="w-4 h-4 mr-2" />
                 {t.health_signInBtn}

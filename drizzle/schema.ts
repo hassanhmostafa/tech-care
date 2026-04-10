@@ -40,6 +40,10 @@ export const users = mysqlTable("users", {
    * For expert users: a short professional bio shown on the experts listing page.
    */
   bio: text("bio"),
+  /**
+   * Hashed password for email+password auth (nullable — social login users won't have one).
+   */
+  passwordHash: text("passwordhash"),
   /** User's gender, chosen during profile setup. Used for BMI calculations. */
   gender: mysqlEnum("gender", ["male", "female"]),
   /** User's date of birth (stored as a date string YYYY-MM-DD). Used to compute age for BMI. */

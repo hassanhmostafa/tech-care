@@ -171,7 +171,7 @@ export default function ExpertInbox() {
               <h2 className="text-xl font-semibold mb-2">
                 {isAr ? "سجّل الدخول لعرض الرسائل" : "Sign in to view messages"}
               </h2>
-              <a href={getLoginUrl()}>
+              <a href="/login">
                 <Button className="bg-cyan-500 hover:bg-cyan-600">
                   {isAr ? "تسجيل الدخول" : "Sign In"}
                 </Button>

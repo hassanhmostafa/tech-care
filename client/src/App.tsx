@@ -17,6 +17,7 @@ import MyBookings from "./pages/MyBookings";
 import FindExperts from "./pages/FindExperts";
 import ExpertInbox from "./pages/ExpertInbox";
 import ExpertRegistration from "./pages/ExpertRegistration";
+import Login from "./pages/Login";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -35,6 +36,7 @@ function Router() {
       <Route path={"/experts"} component={FindExperts} />
       <Route path={"/expert-inbox"} component={ExpertInbox} />
       <Route path={"/expert-registration"} component={ExpertRegistration} />
+      <Route path={"/login"} component={Login} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

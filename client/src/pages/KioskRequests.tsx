@@ -86,7 +86,7 @@ export default function KioskRequests() {
           <div className="text-center space-y-4">
             <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto" />
             <h2 className="text-xl font-semibold">{isAr ? "يرجى تسجيل الدخول" : "Please sign in"}</h2>
-            <a href={getLoginUrl()}>
+            <a href="/login">
               <Button>{isAr ? "تسجيل الدخول" : "Sign In"}</Button>
             </a>
           </div>

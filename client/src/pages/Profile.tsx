@@ -62,7 +62,7 @@ export default function Profile() {
             <h2 className="text-2xl font-bold">
               {isAr ? "سجّل الدخول لإدارة ملفك الشخصي" : "Sign in to manage your profile"}
             </h2>
-            <a href={getLoginUrl()}>
+            <a href="/login">
               <Button className="bg-cyan-500 hover:bg-cyan-600">
                 {isAr ? "تسجيل الدخول" : "Sign In"}
               </Button>

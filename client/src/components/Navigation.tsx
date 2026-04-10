@@ -142,15 +142,15 @@ export default function Navigation() {
             </>
           ) : (
             <>
-              <a href={getLoginUrl()}>
+              <Link href="/login">
                 <Button variant="ghost" className="text-gray-700 hover:text-cyan-600">
                   <LogIn className="w-4 h-4 mr-1" />
                   {t.nav_signIn}
                 </Button>
-              </a>
-              <a href={getLoginUrl()}>
+              </Link>
+              <Link href="/login">
                 <Button className="bg-cyan-500 hover:bg-cyan-600 text-white">{t.nav_getStarted}</Button>
-              </a>
+              </Link>
             </>
           )}
         </div>
@@ -255,12 +255,12 @@ export default function Navigation() {
                 </Button>
               ) : (
                 <>
-                  <a href={getLoginUrl()} className="flex-1">
+                  <Link href="/login" className="flex-1">
                     <Button variant="ghost" className="w-full">{t.nav_signIn}</Button>
-                  </a>
-                  <a href={getLoginUrl()} className="flex-1">
+                  </Link>
+                  <Link href="/login" className="flex-1">
                     <Button className="w-full bg-cyan-500 hover:bg-cyan-600">{t.nav_getStarted}</Button>
-                  </a>
+                  </Link>
                 </>
               )}
             </div>

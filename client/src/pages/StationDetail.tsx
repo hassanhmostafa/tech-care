@@ -69,7 +69,7 @@ export default function StationDetail() {
 
   const handleOpenBooking = () => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      window.location.href = "/login";
       return;
     }
     setShowBooking(true);

@@ -184,7 +184,7 @@ export default function AiPlan() {
             </p>
             <Button
               className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white"
-              onClick={() => (window.location.href = getLoginUrl())}
+              onClick={() => (window.location.href = "/login")}
             >
               {isAr ? "تسجيل الدخول" : "Sign In"}
             </Button>

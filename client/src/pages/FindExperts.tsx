@@ -68,7 +68,7 @@ export default function FindExperts() {
                   ? "تحتاج إلى تسجيل الدخول لتصفح خبراء الصحة والتواصل معهم."
                   : "You need to be signed in to browse and message health experts."}
               </p>
-              <a href={getLoginUrl()}>
+              <a href="/login">
                 <Button className="bg-cyan-500 hover:bg-cyan-600">
                   {isAr ? "تسجيل الدخول" : "Sign In"}
                 </Button>

@@ -65,7 +65,7 @@ export default function ExpertRegistration() {
                   ? "تحتاج إلى تسجيل الدخول للتقدم كخبير صحي."
                   : "You need to be signed in to apply as a health expert."}
               </p>
-              <a href={getLoginUrl()}>
+              <a href="/login">
                 <Button className="bg-cyan-500 hover:bg-cyan-600">
                   {isAr ? "تسجيل الدخول" : "Sign In"}
                 </Button>

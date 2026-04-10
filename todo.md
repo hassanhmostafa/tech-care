@@ -199,3 +199,10 @@
 - [ ] Update Home page remaining strings
 - [ ] Update AIPlan page
 - [ ] Update Experts page
+
+## Email + Password Auth (alongside Manus OAuth)
+- [x] Add passwordHash field to users table in schema, run db:push
+- [x] Install bcryptjs
+- [x] Add register and login tRPC procedures
+- [x] Build login/register page with email+password form + social login buttons
+- [x] Wire up login page in App.tsx routing
