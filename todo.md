@@ -217,3 +217,6 @@
 ## Bug Fixes: Server Crashes
 - [x] Fix passwordhash column name mismatch causing auth errors
 - [x] Disable seed script from resetting Nermine to admin on every restart
+
+## Bug Fix: Download Report Crash
+- [x] Fix crash when pressing Download Report on health dashboard

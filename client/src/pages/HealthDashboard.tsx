@@ -61,8 +61,7 @@ import {
 import { format } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { downloadHealthScoresPDF } from "@/lib/pdfExport";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 
 interface LogFormData {
   kioskId: string;
@@ -594,6 +593,38 @@ export default function HealthDashboard() {
         y += 14;
       }
 
+      // Helper: convert a DOM element containing an SVG chart to a PNG data URL
+      const svgToDataUrl = (el: HTMLElement): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const svgEl = el.querySelector("svg");
+          if (!svgEl) { resolve(""); return; }
+          const svgClone = svgEl.cloneNode(true) as SVGElement;
+          // Inline computed styles for text elements so they render correctly
+          svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+          const w = svgEl.clientWidth || 560;
+          const h = svgEl.clientHeight || 180;
+          svgClone.setAttribute("width", String(w));
+          svgClone.setAttribute("height", String(h));
+          const serialized = new XMLSerializer().serializeToString(svgClone);
+          const blob = new Blob([serialized], { type: "image/svg+xml" });
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = w * 2; canvas.height = h * 2;
+            const ctx = canvas.getContext("2d")!;
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.scale(2, 2);
+            ctx.drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL("image/png"));
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("SVG render failed")); };
+          img.src = url;
+        });
+      };
+
       // Capture each chart card at all 3 ranges via pdf-specific hidden IDs
       const metrics = [
         { id: "pdf-chart-bp", title: "Blood Pressure" },
@@ -618,10 +649,12 @@ export default function HealthDashboard() {
         for (const range of ranges) {
           const el = document.getElementById(`${metric.id}-${range}`);
           if (!el) continue;
-          const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: "#ffffff", useCORS: true });
-          const imgData = canvas.toDataURL("image/png");
+          let imgData = "";
+          try { imgData = await svgToDataUrl(el); } catch { /* skip if render fails */ }
+          if (!imgData) continue;
+
           const imgW = 182;
-          const imgH = (canvas.height / canvas.width) * imgW;
+          const imgH = 54; // fixed height: 180px chart at 96dpi → ~48mm, use 54 for padding
 
           if (y + imgH + 14 > 280) { doc.addPage(); y = 14; }
           doc.setFontSize(9);
