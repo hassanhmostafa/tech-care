@@ -479,6 +479,16 @@ export default function HealthDashboard() {
   const [form, setForm] = useState<LogFormData>(emptyForm);
   const [downloading, setDownloading] = useState(false);
   const chartsRef = useRef<HTMLDivElement>(null);
+  const [visibleCharts, setVisibleCharts] = useState<Record<string, boolean>>({
+    bloodPressure: true,
+    heartRate: true,
+    weight: true,
+    bmi: true,
+    temperature: true,
+    healthScore: true,
+  });
+  const toggleChart = (key: string) =>
+    setVisibleCharts((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const { data: readings, isLoading: readingsLoading } = trpc.health.myReadings.useQuery(
     undefined,
@@ -544,7 +554,7 @@ export default function HealthDashboard() {
   const weightValues = (readings ?? []).map((r) => (r.weight ? parseFloat(r.weight) : null));
   const bmiValues = (readings ?? []).map((r) => (r.bmi ? parseFloat(r.bmi) : null));
 
-  // ── PDF download: capture all chart cards via html2canvas ──
+  // ── PDF download: renders all metrics at all 3 ranges via off-screen containers ──
   const handleDownloadPDF = useCallback(async () => {
     if (!readings || readings.length === 0) return;
     setDownloading(true);
@@ -584,31 +594,45 @@ export default function HealthDashboard() {
         y += 14;
       }
 
-      // Capture each chart card
-      const chartIds = ["chart-bp", "chart-hr", "chart-weight", "chart-bmi", "chart-temp", "chart-score"];
-      const chartTitles = ["Blood Pressure", "Heart Rate", "Weight", "BMI", "Temperature", "Health Score"];
+      // Capture each chart card at all 3 ranges via pdf-specific hidden IDs
+      const metrics = [
+        { id: "pdf-chart-bp", title: "Blood Pressure" },
+        { id: "pdf-chart-hr", title: "Heart Rate" },
+        { id: "pdf-chart-weight", title: "Weight" },
+        { id: "pdf-chart-bmi", title: "BMI" },
+        { id: "pdf-chart-temp", title: "Temperature" },
+        { id: "pdf-chart-score", title: "Health Score" },
+      ];
+      const ranges: ChartRange[] = ["1W", "1M", "1Y"];
+      const rangeLabels: Record<ChartRange, string> = { "1W": "Weekly", "1M": "Monthly", "1Y": "Yearly" };
 
-      for (let i = 0; i < chartIds.length; i++) {
-        const el = document.getElementById(chartIds[i]);
-        if (!el) continue;
-
-        const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: "#ffffff", useCORS: true });
-        const imgData = canvas.toDataURL("image/png");
-        const imgW = 182;
-        const imgH = (canvas.height / canvas.width) * imgW;
-
-        if (y + imgH + 10 > 280) {
-          doc.addPage();
-          y = 14;
-        }
-
-        doc.setFontSize(11);
+      for (const metric of metrics) {
+        // Section heading per metric
+        if (y + 10 > 280) { doc.addPage(); y = 14; }
+        doc.setFontSize(13);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(8, 145, 178);
-        doc.text(chartTitles[i], 14, y);
+        doc.text(metric.title, 14, y);
+        y += 6;
+
+        for (const range of ranges) {
+          const el = document.getElementById(`${metric.id}-${range}`);
+          if (!el) continue;
+          const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: "#ffffff", useCORS: true });
+          const imgData = canvas.toDataURL("image/png");
+          const imgW = 182;
+          const imgH = (canvas.height / canvas.width) * imgW;
+
+          if (y + imgH + 14 > 280) { doc.addPage(); y = 14; }
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 100, 100);
+          doc.text(rangeLabels[range], 14, y);
+          y += 3;
+          doc.addImage(imgData, "PNG", 14, y, imgW, imgH);
+          y += imgH + 6;
+        }
         y += 4;
-        doc.addImage(imgData, "PNG", 14, y, imgW, imgH);
-        y += imgH + 8;
       }
 
       // Footer
@@ -725,11 +749,38 @@ export default function HealthDashboard() {
           {/* BMI Comparison Section */}
           <BmiComparisonCard bmiData={bmiData} bmiLoading={bmiLoading} />
 
-          {/* Per-Metric Charts */}
+          {/* Chart toggle pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-gray-600 mr-1">Show:</span>
+            {([
+              { key: "bloodPressure", label: "Blood Pressure", color: "#ef4444" },
+              { key: "heartRate",     label: "Heart Rate",     color: "#ec4899" },
+              { key: "weight",        label: "Weight",         color: "#3b82f6" },
+              { key: "bmi",           label: "BMI",            color: "#8b5cf6" },
+              { key: "temperature",   label: "Temperature",    color: "#f97316" },
+              { key: "healthScore",   label: "Health Score",   color: "#10b981" },
+            ] as const).map(({ key, label, color }) => (
+              <button
+                key={key}
+                onClick={() => toggleChart(key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  visibleCharts[key]
+                    ? "text-white shadow-sm"
+                    : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"
+                }`}
+                style={visibleCharts[key] ? { backgroundColor: color, borderColor: color } : {}}
+              >
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: visibleCharts[key] ? "white" : color }} />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Per-Metric Charts (visible on screen) */}
           <div ref={chartsRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             {/* Blood Pressure */}
-            <MetricChartCard
+            {visibleCharts.bloodPressure && <MetricChartCard
               title="Blood Pressure"
               color="#ef4444"
               chartId="chart-bp"
@@ -759,10 +810,10 @@ export default function HealthDashboard() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
-            />
+            />}
 
             {/* Heart Rate */}
-            <MetricChartCard
+            {visibleCharts.heartRate && <MetricChartCard
               title="Heart Rate"
               color="#ec4899"
               chartId="chart-hr"
@@ -787,10 +838,10 @@ export default function HealthDashboard() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
-            />
+            />}
 
             {/* Weight */}
-            <MetricChartCard
+            {visibleCharts.weight && <MetricChartCard
               title="Weight"
               color="#3b82f6"
               chartId="chart-weight"
@@ -815,10 +866,10 @@ export default function HealthDashboard() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
-            />
+            />}
 
             {/* BMI */}
-            <MetricChartCard
+            {visibleCharts.bmi && <MetricChartCard
               title="BMI"
               color="#8b5cf6"
               chartId="chart-bmi"
@@ -843,10 +894,10 @@ export default function HealthDashboard() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
-            />
+            />}
 
             {/* Temperature */}
-            <MetricChartCard
+            {visibleCharts.temperature && <MetricChartCard
               title="Temperature"
               color="#f97316"
               chartId="chart-temp"
@@ -871,10 +922,10 @@ export default function HealthDashboard() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
-            />
+            />}
 
             {/* Health Score */}
-            <MetricChartCard
+            {visibleCharts.healthScore && <MetricChartCard
               title="Health Score"
               color="#10b981"
               chartId="chart-score"
@@ -899,7 +950,89 @@ export default function HealthDashboard() {
                   </AreaChart>
                 </ResponsiveContainer>
               )}
-            />
+            />}
+          </div>
+
+          {/* Hidden PDF charts — all 6 metrics at all 3 ranges, always rendered off-screen */}
+          <div className="absolute -left-[9999px] top-0 w-[600px] pointer-events-none" aria-hidden="true">
+            {([
+              { id: "pdf-chart-bp", title: "Blood Pressure", renderChart: (d: object[]) => (
+                <ResponsiveContainer width={560} height={180}>
+                  <AreaChart data={d}>
+                    <defs>
+                      <linearGradient id="pdfGradSys" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="pdfGradDia" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f97316" stopOpacity={0.12}/><stop offset="95%" stopColor="#f97316" stopOpacity={0}/></linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+                    <XAxis dataKey="date" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}} domain={["auto","auto"]}/>
+                    <Tooltip/><Legend/>
+                    <Area type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} fill="url(#pdfGradSys)" dot={false} name="Systolic (mmHg)"/>
+                    <Area type="monotone" dataKey="diastolic" stroke="#f97316" strokeWidth={2} fill="url(#pdfGradDia)" dot={false} name="Diastolic (mmHg)"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              )},
+              { id: "pdf-chart-hr", title: "Heart Rate", renderChart: (d: object[]) => (
+                <ResponsiveContainer width={560} height={180}>
+                  <AreaChart data={d}>
+                    <defs><linearGradient id="pdfGradHR" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ec4899" stopOpacity={0.18}/><stop offset="95%" stopColor="#ec4899" stopOpacity={0}/></linearGradient></defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+                    <XAxis dataKey="date" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}} domain={["auto","auto"]}/>
+                    <Tooltip/><Legend/>
+                    <Area type="monotone" dataKey="heartRate" stroke="#ec4899" strokeWidth={2} fill="url(#pdfGradHR)" dot={false} name="Heart Rate (bpm)"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              )},
+              { id: "pdf-chart-weight", title: "Weight", renderChart: (d: object[]) => (
+                <ResponsiveContainer width={560} height={180}>
+                  <AreaChart data={d}>
+                    <defs><linearGradient id="pdfGradW" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+                    <XAxis dataKey="date" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}} domain={["auto","auto"]}/>
+                    <Tooltip/><Legend/>
+                    <Area type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} fill="url(#pdfGradW)" dot={false} name="Weight (kg)"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              )},
+              { id: "pdf-chart-bmi", title: "BMI", renderChart: (d: object[]) => (
+                <ResponsiveContainer width={560} height={180}>
+                  <AreaChart data={d}>
+                    <defs><linearGradient id="pdfGradBMI" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15}/><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/></linearGradient></defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+                    <XAxis dataKey="date" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}} domain={["auto","auto"]}/>
+                    <Tooltip/><Legend/>
+                    <Area type="monotone" dataKey="bmi" stroke="#8b5cf6" strokeWidth={2} fill="url(#pdfGradBMI)" dot={false} name="BMI"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              )},
+              { id: "pdf-chart-temp", title: "Temperature", renderChart: (d: object[]) => (
+                <ResponsiveContainer width={560} height={180}>
+                  <AreaChart data={d}>
+                    <defs><linearGradient id="pdfGradTemp" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f97316" stopOpacity={0.15}/><stop offset="95%" stopColor="#f97316" stopOpacity={0}/></linearGradient></defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+                    <XAxis dataKey="date" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}} domain={["auto","auto"]}/>
+                    <Tooltip/><Legend/>
+                    <Area type="monotone" dataKey="temperature" stroke="#f97316" strokeWidth={2} fill="url(#pdfGradTemp)" dot={false} name="Temperature (°C)"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              )},
+              { id: "pdf-chart-score", title: "Health Score", renderChart: (d: object[]) => (
+                <ResponsiveContainer width={560} height={180}>
+                  <AreaChart data={d}>
+                    <defs><linearGradient id="pdfGradScore" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.18}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+                    <XAxis dataKey="date" tick={{fontSize:10}}/><YAxis tick={{fontSize:10}} domain={[0,100]}/>
+                    <Tooltip/><Legend/>
+                    <Area type="monotone" dataKey="score" stroke="#10b981" strokeWidth={2} fill="url(#pdfGradScore)" dot={false} name="Health Score"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              )},
+            ] as const).map(({ id, renderChart: rc }) => (
+              <div key={id}>
+                <div id={`${id}-1W`} className="bg-white p-3">{rc(weekData)}</div>
+                <div id={`${id}-1M`} className="bg-white p-3">{rc(monthData)}</div>
+                <div id={`${id}-1Y`} className="bg-white p-3">{rc(yearData)}</div>
+              </div>
+            ))}
           </div>
 
           {/* Readings History */}

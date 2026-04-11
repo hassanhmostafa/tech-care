@@ -209,3 +209,7 @@
 
 ## Health Report Download: Charts-based PDF
 - [x] Replace raw readings list download with a PDF containing all metric charts (weekly/monthly/yearly) for every metric
+
+## Health Dashboard: Restore Toggles + Fix PDF
+- [x] Restore chart toggle pills (show/hide per metric) on the dashboard
+- [x] PDF always includes all 6 metrics, each at Weekly/Monthly/Yearly (regardless of toggles)
