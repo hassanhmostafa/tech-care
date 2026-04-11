@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import Navigation from "@/components/Navigation";
@@ -45,15 +45,10 @@ import {
   Minus,
   LogIn,
   Target,
-  AlertCircle,
-  CheckCircle2,
-  User,
   Download,
 } from "lucide-react";
 import { Link } from "wouter";
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -63,10 +58,11 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { getLoginUrl } from "@/const";
 import { format } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { downloadHealthScoresPDF } from "@/lib/pdfExport";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface LogFormData {
   kioskId: string;
@@ -161,7 +157,7 @@ function HealthScoreBanner({
   const data = scoreData as Exclude<HealthScoreData, { status: "no_readings" } | undefined>;
   if (data.status !== "ok") return null;
 
-  const circumference = 2 * Math.PI * 45; // r=45
+  const circumference = 2 * Math.PI * 45;
   const dashOffset = circumference - (data.score / 100) * circumference;
 
   const breakdownItems = [
@@ -174,45 +170,27 @@ function HealthScoreBanner({
   return (
     <Card className="p-6 border-0 shadow-sm overflow-hidden">
       <div className="flex flex-col md:flex-row gap-6 items-center">
-        {/* Circular gauge */}
         <div className="relative shrink-0">
           <svg width="120" height="120" viewBox="0 0 100 100">
-            {/* Track */}
             <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-            {/* Score arc */}
             <circle
-              cx="50"
-              cy="50"
-              r="45"
-              fill="none"
-              stroke={data.gradeColor}
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
+              cx="50" cy="50" r="45" fill="none"
+              stroke={data.gradeColor} strokeWidth="8" strokeLinecap="round"
+              strokeDasharray={circumference} strokeDashoffset={dashOffset}
               transform="rotate(-90 50 50)"
               style={{ transition: "stroke-dashoffset 0.8s ease" }}
             />
-            <text x="50" y="46" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#111827">
-              {data.score}
-            </text>
-            <text x="50" y="62" textAnchor="middle" fontSize="10" fill="#6b7280">
-              out of 100
-            </text>
+            <text x="50" y="46" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#111827">{data.score}</text>
+            <text x="50" y="62" textAnchor="middle" fontSize="10" fill="#6b7280">out of 100</text>
           </svg>
         </div>
-
-        {/* Grade + breakdown */}
         <div className="flex-1 w-full">
           <div className="flex items-center gap-3 mb-4">
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wide">Overall Health Score</div>
-              <div className="text-2xl font-bold" style={{ color: data.gradeColor }}>
-                {data.grade}
-              </div>
+              <div className="text-2xl font-bold" style={{ color: data.gradeColor }}>{data.grade}</div>
             </div>
           </div>
-
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {breakdownItems.map((item) => (
               <div key={item.label} className="bg-gray-50 rounded-lg p-3">
@@ -223,16 +201,10 @@ function HealthScoreBanner({
                 {item.value !== null ? (
                   <>
                     <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-1">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${item.value}%`,
-                          backgroundColor:
-                            item.value >= 90 ? "#22c55e" :
-                            item.value >= 75 ? "#06b6d4" :
-                            item.value >= 50 ? "#f97316" : "#ef4444",
-                        }}
-                      />
+                      <div className="h-full rounded-full" style={{
+                        width: `${item.value}%`,
+                        backgroundColor: item.value >= 90 ? "#22c55e" : item.value >= 75 ? "#06b6d4" : item.value >= 50 ? "#f97316" : "#ef4444",
+                      }} />
                     </div>
                     <div className="text-xs font-semibold text-gray-700">{item.value}/100</div>
                   </>
@@ -284,27 +256,22 @@ function BmiComparisonCard({ bmiData, bmiLoading }: { bmiData: BmiDataState; bmi
       <Card className="p-6 border-0 shadow-sm">
         <div className="flex items-center gap-2 text-gray-400">
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span>Calculating BMI comparison...</span>
+          <span>Loading BMI data...</span>
         </div>
       </Card>
     );
   }
-
-  if (!bmiData || bmiData.status === "profile_incomplete") {
+  if (!bmiData || bmiData.status === "no_readings") return null;
+  if (bmiData.status === "profile_incomplete") {
     return (
       <Card className="p-6 border-0 shadow-sm bg-amber-50">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+          <Target className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
           <div>
-            <h3 className="font-semibold text-amber-800 mb-1">Complete Your Profile for BMI Analysis</h3>
-            <p className="text-sm text-amber-700 mb-3">
-              Add your gender and date of birth to your profile so Tech Care can calculate your actual vs ideal BMI.
-            </p>
+            <h3 className="font-semibold text-amber-800 mb-1">Complete Your Profile</h3>
+            <p className="text-sm text-amber-700">Add your date of birth and gender in your profile to see your BMI comparison.</p>
             <Link href="/profile">
-              <button className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors">
-                <User className="w-4 h-4" />
-                Set Up Profile
-              </button>
+              <Button size="sm" variant="outline" className="mt-2 border-amber-300 text-amber-700 hover:bg-amber-100">Go to Profile</Button>
             </Link>
           </div>
         </div>
@@ -312,146 +279,73 @@ function BmiComparisonCard({ bmiData, bmiLoading }: { bmiData: BmiDataState; bmi
     );
   }
 
-  if (bmiData.status === "no_readings") {
-    return (
-      <Card className="p-6 border-0 shadow-sm bg-blue-50">
-        <div className="flex items-start gap-3">
-          <Target className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
-          <div>
-            <h3 className="font-semibold text-blue-800 mb-1">No Weight/Height Data Yet</h3>
-            <p className="text-sm text-blue-700">
-              Log a reading that includes your weight and height to see your BMI comparison.
-            </p>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
   const data = bmiData as BmiDataOk;
-  const diff = parseFloat((data.actualBmi - data.idealBmi).toFixed(1));
-  const isNormal = data.classification === "Normal";
-  const classColor =
-    data.classification === "Normal"
-      ? "text-green-600"
-      : data.classification === "Underweight"
-      ? "text-blue-600"
-      : data.classification === "Overweight"
-      ? "text-orange-600"
-      : "text-red-600";
+  const bmiMin = 15; const bmiMax = 40;
+  const clamp = (v: number) => Math.max(0, Math.min(100, ((v - bmiMin) / (bmiMax - bmiMin)) * 100));
+  const healthyMinPct = clamp(data.healthyMin);
+  const healthyMaxPct = clamp(data.healthyMax);
+  const idealPct = clamp(data.idealBmi);
+  const actualPct = clamp(data.actualBmi);
 
-  // Build gauge bar: range 10–45 BMI
-  const gaugeMin = 10;
-  const gaugeMax = 45;
-  const toPercent = (v: number) => Math.min(100, Math.max(0, ((v - gaugeMin) / (gaugeMax - gaugeMin)) * 100));
-  const healthyMinPct = toPercent(data.healthyMin);
-  const healthyMaxPct = toPercent(data.healthyMax);
-  const actualPct = toPercent(data.actualBmi);
-  const idealPct = toPercent(data.idealBmi);
+  const classColor = data.classification === "Normal" ? "#22c55e" : data.classification === "Underweight" ? "#3b82f6" : data.classification === "Overweight" ? "#f97316" : "#ef4444";
 
   return (
     <Card className="p-6 border-0 shadow-sm">
-      <div className="flex items-center gap-2 mb-5">
-        <Target className="w-5 h-5 text-cyan-500" />
-        <h2 className="text-xl font-bold text-gray-900">BMI Comparison</h2>
-        {isNormal && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+          <Scale className="w-5 h-5 text-blue-500" /> BMI Analysis
+        </h3>
+        <span className="text-sm font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: classColor }}>
+          {data.classification}
+        </span>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="text-center p-4 bg-gray-50 rounded-xl">
-          <div className={`text-3xl font-bold ${classColor}`}>{data.actualBmi}</div>
-          <div className="text-xs text-gray-500 mt-1">Your BMI</div>
-          <div className={`text-xs font-medium mt-0.5 ${classColor}`}>{data.classification}</div>
+      <div className="flex items-end gap-6 mb-4">
+        <div>
+          <div className="text-xs text-gray-500 mb-0.5">Your BMI</div>
+          <div className="text-3xl font-bold" style={{ color: classColor }}>{data.actualBmi.toFixed(1)}</div>
         </div>
-        <div className="text-center p-4 bg-cyan-50 rounded-xl">
-          <div className="text-3xl font-bold text-cyan-600">{data.idealBmi}</div>
-          <div className="text-xs text-gray-500 mt-1">Ideal BMI</div>
-          <div className="text-xs font-medium text-cyan-600 mt-0.5">For your profile</div>
+        <div>
+          <div className="text-xs text-gray-500 mb-0.5">Ideal BMI</div>
+          <div className="text-xl font-semibold text-cyan-600">{data.idealBmi.toFixed(1)}</div>
         </div>
-        <div className="text-center p-4 bg-gray-50 rounded-xl">
-          <div className="text-3xl font-bold text-gray-700">
-            {diff > 0 ? "+" : ""}{diff}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">Difference</div>
-          <div className="text-xs font-medium text-gray-500 mt-0.5">
-            {diff === 0 ? "At ideal" : diff > 0 ? "Above ideal" : "Below ideal"}
-          </div>
-        </div>
-        <div className="text-center p-4 bg-gray-50 rounded-xl">
-          <div className="text-sm font-bold text-gray-700">{data.healthyMin}–{data.healthyMax}</div>
-          <div className="text-xs text-gray-500 mt-1">Healthy Range</div>
-          <div className="text-xs font-medium text-gray-500 mt-0.5">Age {data.age}</div>
+        <div>
+          <div className="text-xs text-gray-500 mb-0.5">Healthy Range</div>
+          <div className="text-sm font-medium text-gray-600">{data.healthyMin}–{data.healthyMax}</div>
         </div>
       </div>
 
-      {/* Visual gauge bar */}
-      <div className="mb-4">
-        <div className="text-xs text-gray-500 mb-2 flex justify-between">
-          <span>BMI {gaugeMin}</span>
-          <span>BMI {gaugeMax}</span>
-        </div>
-        <div className="relative h-6 bg-gray-100 rounded-full overflow-hidden">
-          {/* Healthy zone */}
-          <div
-            className="absolute h-full bg-green-200 rounded-full"
-            style={{ left: `${healthyMinPct}%`, width: `${healthyMaxPct - healthyMinPct}%` }}
-          />
-          {/* Ideal BMI marker */}
-          <div
-            className="absolute top-0 h-full w-1 bg-cyan-500"
-            style={{ left: `${idealPct}%` }}
-          />
-          {/* Actual BMI marker */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow"
-            style={{
-              left: `calc(${actualPct}% - 8px)`,
-              backgroundColor:
-                data.classification === "Normal" ? "#22c55e" :
-                data.classification === "Underweight" ? "#3b82f6" :
-                data.classification === "Overweight" ? "#f97316" : "#ef4444",
-            }}
-          />
-        </div>
-        <div className="flex justify-between text-xs text-gray-400 mt-1">
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-green-200"></span> Healthy zone</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-1 h-3 bg-cyan-500"></span> Ideal</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-gray-400"></span> Your BMI</span>
-        </div>
+      <div className="relative h-6 bg-gray-100 rounded-full overflow-hidden mb-1">
+        <div className="absolute top-0 h-full bg-green-200 rounded-full"
+          style={{ left: `${healthyMinPct}%`, width: `${healthyMaxPct - healthyMinPct}%` }} />
+        <div className="absolute top-0 h-full w-1 bg-cyan-500" style={{ left: `${idealPct}%` }} />
+        <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow"
+          style={{ left: `calc(${actualPct}% - 8px)`, backgroundColor: classColor }} />
+      </div>
+      <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-green-200"></span> Healthy zone</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-1 h-3 bg-cyan-500"></span> Ideal</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-gray-400"></span> Your BMI</span>
       </div>
 
-      {/* Weight Target Section */}
       {data.weightTarget && (
         <div className="mt-5 p-4 bg-gray-50 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-              <Target className="w-4 h-4 text-cyan-500" />
-              Ideal Weight Target
+              <Target className="w-4 h-4 text-cyan-500" /> Ideal Weight Target
             </span>
             <span className="text-sm font-bold text-cyan-600">{data.weightTarget.idealWeightKg} kg</span>
           </div>
-
-          {/* Progress bar */}
           <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden mb-2">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${data.weightTarget.progressPct}%`,
-                backgroundColor:
-                  data.weightTarget.direction === "at_ideal" ? "#22c55e" :
-                  data.weightTarget.progressPct >= 70 ? "#06b6d4" :
-                  data.weightTarget.progressPct >= 40 ? "#f97316" : "#ef4444",
-              }}
-            />
+            <div className="h-full rounded-full transition-all duration-500" style={{
+              width: `${data.weightTarget.progressPct}%`,
+              backgroundColor: data.weightTarget.direction === "at_ideal" ? "#22c55e" : data.weightTarget.progressPct >= 70 ? "#06b6d4" : data.weightTarget.progressPct >= 40 ? "#f97316" : "#ef4444",
+            }} />
           </div>
-
           <div className="flex justify-between items-center text-xs">
             <span className="text-gray-500">
-              {data.weightTarget.direction === "at_ideal"
-                ? "✓ You are at your ideal weight!"
-                : data.weightTarget.direction === "lose"
-                ? `Need to lose ${Math.abs(data.weightTarget.diffKg)} kg`
+              {data.weightTarget.direction === "at_ideal" ? "✓ You are at your ideal weight!"
+                : data.weightTarget.direction === "lose" ? `Need to lose ${Math.abs(data.weightTarget.diffKg)} kg`
                 : `Need to gain ${Math.abs(data.weightTarget.diffKg)} kg`}
             </span>
             <span className="font-semibold text-gray-600">{data.weightTarget.progressPct}% there</span>
@@ -459,7 +353,6 @@ function BmiComparisonCard({ bmiData, bmiLoading }: { bmiData: BmiDataState; bmi
         </div>
       )}
 
-      {/* Measurement details */}
       <div className="text-xs text-gray-400 border-t pt-3 mt-4 flex flex-wrap gap-4">
         <span>Weight: <strong className="text-gray-600">{data.weight} kg</strong></span>
         <span>Height: <strong className="text-gray-600">{data.height} cm</strong></span>
@@ -468,6 +361,110 @@ function BmiComparisonCard({ bmiData, bmiLoading }: { bmiData: BmiDataState; bmi
       </div>
     </Card>
   );
+}
+
+// ─── Per-Metric Chart Card ─────────────────────────────────────────────────
+
+type ChartRange = "1W" | "1M" | "1Y";
+
+interface MetricChartCardProps {
+  title: string;
+  color: string;
+  chartId: string;
+  weekData: object[];
+  monthData: object[];
+  yearData: object[];
+  renderChart: (data: object[], range: ChartRange) => React.ReactNode;
+}
+
+function MetricChartCard({ title, chartId, weekData, monthData, yearData, renderChart }: MetricChartCardProps) {
+  const [range, setRange] = useState<ChartRange>("1M");
+
+  const data = range === "1W" ? weekData : range === "1M" ? monthData : yearData;
+
+  return (
+    <Card className="p-5 border-0 shadow-sm" id={chartId}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-800">{title}</h3>
+        <div className="flex gap-1">
+          {(["1W", "1M", "1Y"] as ChartRange[]).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                range === r ? "bg-cyan-500 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {r === "1W" ? "Weekly" : r === "1M" ? "Monthly" : "Yearly"}
+            </button>
+          ))}
+        </div>
+      </div>
+      {data.length === 0 ? (
+        <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">No data for this period</div>
+      ) : (
+        renderChart(data, range)
+      )}
+    </Card>
+  );
+}
+
+// ─── Chart data helpers ────────────────────────────────────────────────────
+
+function formatDate(dateVal: Date | string, range: ChartRange): string {
+  const d = new Date(dateVal);
+  if (range === "1W") return format(d, "EEE d");
+  if (range === "1M") return format(d, "MMM d");
+  return format(d, "MMM");
+}
+
+type RawReading = {
+  recordedAt: Date;
+  bloodPressureSystolic?: number | null;
+  bloodPressureDiastolic?: number | null;
+  heartRate?: number | null;
+  weight?: string | null;
+  bmi?: string | null;
+  temperature?: string | null;
+};
+
+function buildChartData(readings: RawReading[], range: ChartRange) {
+  const now = new Date();
+  const cutoff = new Date(now);
+  if (range === "1W") cutoff.setDate(now.getDate() - 7);
+  else if (range === "1M") cutoff.setMonth(now.getMonth() - 1);
+  else cutoff.setFullYear(now.getFullYear() - 1);
+
+  return [...readings]
+    .filter((r) => new Date(r.recordedAt) >= cutoff)
+    .reverse()
+    .map((r) => ({
+      date: formatDate(r.recordedAt, range),
+      systolic: r.bloodPressureSystolic ?? null,
+      diastolic: r.bloodPressureDiastolic ?? null,
+      heartRate: r.heartRate ?? null,
+      weight: r.weight ? parseFloat(r.weight) : null,
+      bmi: r.bmi ? parseFloat(r.bmi) : null,
+      temperature: r.temperature ? parseFloat(r.temperature) : null,
+      score: (() => {
+        let total = 0; let count = 0;
+        if (r.bloodPressureSystolic != null && r.bloodPressureDiastolic != null) {
+          const s = r.bloodPressureSystolic <= 120 && r.bloodPressureDiastolic <= 80 ? 100
+            : r.bloodPressureSystolic <= 130 ? 80 : r.bloodPressureSystolic <= 140 ? 60 : r.bloodPressureSystolic <= 160 ? 40 : 20;
+          total += s; count++;
+        }
+        if (r.heartRate != null) {
+          total += (r.heartRate >= 60 && r.heartRate <= 100 ? 100 : r.heartRate >= 50 && r.heartRate <= 110 ? 70 : 40);
+          count++;
+        }
+        if (r.bmi != null) {
+          const b = parseFloat(r.bmi as unknown as string);
+          total += (b >= 18.5 && b <= 24.9 ? 100 : b >= 17 && b <= 27 ? 70 : 40);
+          count++;
+        }
+        return count > 0 ? Math.round(total / count) : null;
+      })(),
+    }));
 }
 
 // ─── Main Dashboard ─────────────────────────────────────────────────────────
@@ -480,17 +477,8 @@ export default function HealthDashboard() {
   const [showLog, setShowLog] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<LogFormData>(emptyForm);
-  const [chartRange, setChartRange] = useState<"1W" | "1M" | "1Y" | "MAX">("1M");
-  const [visibleCharts, setVisibleCharts] = useState<Record<string, boolean>>({
-    bloodPressure: true,
-    heartRate: true,
-    weight: false,
-    bmi: false,
-    healthScore: false,
-  });
-
-  const toggleChart = (key: string) =>
-    setVisibleCharts((prev) => ({ ...prev, [key]: !prev[key] }));
+  const [downloading, setDownloading] = useState(false);
+  const chartsRef = useRef<HTMLDivElement>(null);
 
   const { data: readings, isLoading: readingsLoading } = trpc.health.myReadings.useQuery(
     undefined,
@@ -529,10 +517,7 @@ export default function HealthDashboard() {
   });
 
   const handleSubmit = () => {
-    if (!form.kioskId) {
-      toast.error("Please select a kiosk");
-      return;
-    }
+    if (!form.kioskId) { toast.error("Please select a kiosk"); return; }
     const bmi = calcBmi(form.weight, form.height);
     logMutation.mutate({
       kioskId: form.kioskId,
@@ -547,34 +532,10 @@ export default function HealthDashboard() {
     });
   };
 
-  const { data: chartRaw, isLoading: chartLoading } = trpc.health.chartReadings.useQuery(
-    { range: chartRange },
-    { enabled: isAuthenticated }
-  );
-
-  // Format x-axis date label based on range
-  function formatChartDate(dateVal: Date | string, range: string): string {
-    const d = new Date(dateVal);
-    if (range === "1W") return format(d, "EEE d");   // Mon 4
-    if (range === "1M") return format(d, "MMM d");   // Apr 4
-    if (range === "1Y") return format(d, "MMM");     // Apr
-    return format(d, "MMM yy");                       // Apr 25
-  }
-
-  // Build chart data from range-filtered readings (oldest first for chart)
-  const chartData = useMemo(() => {
-    if (!chartRaw) return [];
-    return [...chartRaw]
-      .reverse()
-      .map((r) => ({
-        date: formatChartDate(r.recordedAt, chartRange),
-        systolic: r.bloodPressureSystolic ?? null,
-        diastolic: r.bloodPressureDiastolic ?? null,
-        heartRate: r.heartRate ?? null,
-        weight: r.weight ? parseFloat(r.weight) : null,
-        bmi: r.bmi ? parseFloat(r.bmi) : null,
-      }));
-  }, [chartRaw, chartRange]);
+  // Build chart data for all three ranges
+  const weekData = useMemo(() => readings ? buildChartData(readings, "1W") : [], [readings]);
+  const monthData = useMemo(() => readings ? buildChartData(readings, "1M") : [], [readings]);
+  const yearData = useMemo(() => readings ? buildChartData(readings, "1Y") : [], [readings]);
 
   // Latest values for summary cards
   const latest = readings?.[0];
@@ -582,6 +543,95 @@ export default function HealthDashboard() {
   const hrValues = (readings ?? []).map((r) => r.heartRate ?? null);
   const weightValues = (readings ?? []).map((r) => (r.weight ? parseFloat(r.weight) : null));
   const bmiValues = (readings ?? []).map((r) => (r.bmi ? parseFloat(r.bmi) : null));
+
+  // ── PDF download: capture all chart cards via html2canvas ──
+  const handleDownloadPDF = useCallback(async () => {
+    if (!readings || readings.length === 0) return;
+    setDownloading(true);
+    try {
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      const name = user?.name ?? "Patient";
+
+      // Header
+      doc.setFillColor(8, 145, 178);
+      doc.rect(0, 0, 210, 28, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Tech Care", 14, 12);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text("Health Report — All Metrics", 14, 20);
+      doc.setFontSize(9);
+      doc.setTextColor(200, 240, 255);
+      doc.text(`Patient: ${name} · Generated: ${now}`, 14, 26);
+      doc.setTextColor(40, 40, 40);
+
+      let y = 36;
+
+      // Health score summary
+      if (healthScore && healthScore.status === "ok") {
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(8, 145, 178);
+        doc.text("Overall Health Score", 14, y);
+        y += 7;
+        doc.setFontSize(24);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(40, 40, 40);
+        doc.text(`${healthScore.score}/100  (${healthScore.grade})`, 14, y + 5);
+        y += 14;
+      }
+
+      // Capture each chart card
+      const chartIds = ["chart-bp", "chart-hr", "chart-weight", "chart-bmi", "chart-temp", "chart-score"];
+      const chartTitles = ["Blood Pressure", "Heart Rate", "Weight", "BMI", "Temperature", "Health Score"];
+
+      for (let i = 0; i < chartIds.length; i++) {
+        const el = document.getElementById(chartIds[i]);
+        if (!el) continue;
+
+        const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: "#ffffff", useCORS: true });
+        const imgData = canvas.toDataURL("image/png");
+        const imgW = 182;
+        const imgH = (canvas.height / canvas.width) * imgW;
+
+        if (y + imgH + 10 > 280) {
+          doc.addPage();
+          y = 14;
+        }
+
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(8, 145, 178);
+        doc.text(chartTitles[i], 14, y);
+        y += 4;
+        doc.addImage(imgData, "PNG", 14, y, imgW, imgH);
+        y += imgH + 8;
+      }
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+          `Generated by Tech Care · Page ${i} of ${pageCount} · ${now}`,
+          14,
+          doc.internal.pageSize.height - 8
+        );
+      }
+
+      doc.save(`TechCare_HealthReport_${name.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate PDF. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }, [readings, healthScore, user]);
 
   if (loading) {
     return (
@@ -632,35 +682,13 @@ export default function HealthDashboard() {
               <Button
                 variant="outline"
                 className="border-white/40 text-white hover:bg-white/10 bg-transparent"
-                onClick={() => {
-                  if (!readings || readings.length === 0) {
-                    return;
-                  }
-                  downloadHealthScoresPDF(
-                    readings,
-                    healthScore && healthScore.status === 'ok' ? {
-                      score: healthScore.score,
-                      grade: healthScore.grade,
-                      gradeColor: healthScore.gradeColor,
-                      components: [
-                        { label: 'Blood Pressure', value: healthScore.breakdown.bloodPressure ?? 0, color: '#ef4444' },
-                        { label: 'Heart Rate', value: healthScore.breakdown.heartRate ?? 0, color: '#ec4899' },
-                        { label: 'BMI', value: healthScore.breakdown.bmi ?? 0, color: '#3b82f6' },
-                        { label: 'Temperature', value: healthScore.breakdown.temperature ?? 0, color: '#f97316' },
-                      ],
-                    } : null,
-                    user?.name ?? 'Patient'
-                  );
-                }}
-                disabled={!readings || readings.length === 0}
+                onClick={handleDownloadPDF}
+                disabled={!readings || readings.length === 0 || downloading}
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download Report
+                {downloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                {downloading ? "Generating..." : "Download Report"}
               </Button>
-              <Button
-                className="bg-white text-cyan-700 hover:bg-cyan-50"
-                onClick={() => setShowLog(true)}
-              >
+              <Button className="bg-white text-cyan-700 hover:bg-cyan-50" onClick={() => setShowLog(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 {t.health_logReading}
               </Button>
@@ -675,42 +703,14 @@ export default function HealthDashboard() {
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              {
-                icon: <Activity className="w-5 h-5 text-red-500" />,
-                label: t.health_bpLabel,
-                value: latest?.bloodPressureSystolic
-                  ? `${latest.bloodPressureSystolic}/${latest.bloodPressureDiastolic}`
-                  : "—",
-                unit: "mmHg",
-                trend: <Trend values={bpSystolicValues} />,
-              },
-              {
-                icon: <Heart className="w-5 h-5 text-pink-500" />,
-                label: t.health_hrLabel,
-                value: latest?.heartRate ?? "—",
-                unit: "bpm",
-                trend: <Trend values={hrValues} />,
-              },
-              {
-                icon: <Scale className="w-5 h-5 text-blue-500" />,
-                label: t.health_weightLabel,
-                value: latest?.weight ? parseFloat(latest.weight).toFixed(1) : "—",
-                unit: "kg",
-                trend: <Trend values={weightValues} />,
-              },
-              {
-                icon: <Thermometer className="w-5 h-5 text-orange-500" />,
-                label: t.health_bmiLabel,
-                value: latest?.bmi ? parseFloat(latest.bmi).toFixed(1) : "—",
-                unit: "",
-                trend: <Trend values={bmiValues} />,
-              },
+              { icon: <Activity className="w-5 h-5 text-red-500" />, label: t.health_bpLabel, value: latest?.bloodPressureSystolic ? `${latest.bloodPressureSystolic}/${latest.bloodPressureDiastolic}` : "—", unit: "mmHg", trend: <Trend values={bpSystolicValues} /> },
+              { icon: <Heart className="w-5 h-5 text-pink-500" />, label: t.health_hrLabel, value: latest?.heartRate ?? "—", unit: "bpm", trend: <Trend values={hrValues} /> },
+              { icon: <Scale className="w-5 h-5 text-blue-500" />, label: t.health_weightLabel, value: latest?.weight ? parseFloat(latest.weight).toFixed(1) : "—", unit: "kg", trend: <Trend values={weightValues} /> },
+              { icon: <Thermometer className="w-5 h-5 text-orange-500" />, label: t.health_bmiLabel, value: latest?.bmi ? parseFloat(latest.bmi).toFixed(1) : "—", unit: "", trend: <Trend values={bmiValues} /> },
             ].map((card) => (
               <Card key={card.label} className="p-5 border-0 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
-                    {card.icon}
-                  </div>
+                  <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">{card.icon}</div>
                   {card.trend}
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -725,214 +725,181 @@ export default function HealthDashboard() {
           {/* BMI Comparison Section */}
           <BmiComparisonCard bmiData={bmiData} bmiLoading={bmiLoading} />
 
-          {/* Charts */}
-          <div className="space-y-4">
-            {/* Top bar: range selector + chart toggles */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Range pills */}
-              {(["1W", "1M", "1Y", "MAX"] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setChartRange(r)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    chartRange === r
-                      ? "bg-cyan-500 text-white shadow-sm"
-                      : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  {r === "1W" ? "1 Week" : r === "1M" ? "1 Month" : r === "1Y" ? "1 Year" : "Max"}
-                </button>
-              ))}
-              {chartLoading && <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />}
+          {/* Per-Metric Charts */}
+          <div ref={chartsRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-              {/* Divider */}
-              <span className="w-px h-5 bg-gray-200 mx-1" />
+            {/* Blood Pressure */}
+            <MetricChartCard
+              title="Blood Pressure"
+              color="#ef4444"
+              chartId="chart-bp"
+              weekData={weekData}
+              monthData={monthData}
+              yearData={yearData}
+              renderChart={(data) => (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={data}>
+                    <defs>
+                      <linearGradient id="gradSys" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gradDia" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                    <Tooltip />
+                    <Legend />
+                    <Area type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} fill="url(#gradSys)" dot={false} name="Systolic (mmHg)" />
+                    <Area type="monotone" dataKey="diastolic" stroke="#f97316" strokeWidth={2} fill="url(#gradDia)" dot={false} name="Diastolic (mmHg)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            />
 
-              {/* Chart toggle pills */}
-              {([
-                { key: "bloodPressure", label: "Blood Pressure", color: "#ef4444" },
-                { key: "heartRate",    label: "Heart Rate",     color: "#ec4899" },
-                { key: "weight",       label: "Weight",         color: "#3b82f6" },
-                { key: "bmi",          label: "BMI",            color: "#8b5cf6" },
-                { key: "healthScore",  label: "Health Score",   color: "#10b981" },
-              ] as const).map(({ key, label, color }) => (
-                <button
-                  key={key}
-                  onClick={() => toggleChart(key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    visibleCharts[key]
-                      ? "text-white shadow-sm"
-                      : "bg-white text-gray-400 border-gray-200 hover:border-gray-300"
-                  }`}
-                  style={visibleCharts[key] ? { backgroundColor: color, borderColor: color } : {}}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: visibleCharts[key] ? "white" : color }}
-                  />
-                  {label}
-                </button>
-              ))}
-            </div>
+            {/* Heart Rate */}
+            <MetricChartCard
+              title="Heart Rate"
+              color="#ec4899"
+              chartId="chart-hr"
+              weekData={weekData}
+              monthData={monthData}
+              yearData={yearData}
+              renderChart={(data) => (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={data}>
+                    <defs>
+                      <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                    <Tooltip />
+                    <Legend />
+                    <Area type="monotone" dataKey="heartRate" stroke="#ec4899" strokeWidth={2} fill="url(#gradHR)" dot={false} name="Heart Rate (bpm)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            />
 
-            {/* Chart grid — only visible charts rendered */}
-            {Object.values(visibleCharts).some(Boolean) ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Weight */}
+            <MetricChartCard
+              title="Weight"
+              color="#3b82f6"
+              chartId="chart-weight"
+              weekData={weekData}
+              monthData={monthData}
+              yearData={yearData}
+              renderChart={(data) => (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={data}>
+                    <defs>
+                      <linearGradient id="gradW" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                    <Tooltip />
+                    <Legend />
+                    <Area type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} fill="url(#gradW)" dot={false} name="Weight (kg)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            />
 
-                {/* Blood Pressure */}
-                {visibleCharts.bloodPressure && (
-                  <Card className="p-5 border-0 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-4">Blood Pressure Trend</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient id="gradSystolic" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="gradDiastolic" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.12} />
-                            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
-                        <Tooltip />
-                        <Legend />
-                        <Area type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} fill="url(#gradSystolic)" dot={false} name="Systolic (mmHg)" />
-                        <Area type="monotone" dataKey="diastolic" stroke="#f97316" strokeWidth={2} fill="url(#gradDiastolic)" dot={false} name="Diastolic (mmHg)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </Card>
-                )}
+            {/* BMI */}
+            <MetricChartCard
+              title="BMI"
+              color="#8b5cf6"
+              chartId="chart-bmi"
+              weekData={weekData}
+              monthData={monthData}
+              yearData={yearData}
+              renderChart={(data) => (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={data}>
+                    <defs>
+                      <linearGradient id="gradBMI" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                    <Tooltip />
+                    <Legend />
+                    <Area type="monotone" dataKey="bmi" stroke="#8b5cf6" strokeWidth={2} fill="url(#gradBMI)" dot={false} name="BMI" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            />
 
-                {/* Heart Rate */}
-                {visibleCharts.heartRate && (
-                  <Card className="p-5 border-0 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-4">Heart Rate Trend</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ec4899" stopOpacity={0.18} />
-                            <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
-                        <Tooltip />
-                        <Legend />
-                        <Area type="monotone" dataKey="heartRate" stroke="#ec4899" strokeWidth={2} fill="url(#gradHR)" dot={false} name="Heart Rate (bpm)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </Card>
-                )}
+            {/* Temperature */}
+            <MetricChartCard
+              title="Temperature"
+              color="#f97316"
+              chartId="chart-temp"
+              weekData={weekData}
+              monthData={monthData}
+              yearData={yearData}
+              renderChart={(data) => (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={data}>
+                    <defs>
+                      <linearGradient id="gradTemp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+                    <Tooltip />
+                    <Legend />
+                    <Area type="monotone" dataKey="temperature" stroke="#f97316" strokeWidth={2} fill="url(#gradTemp)" dot={false} name="Temperature (°C)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            />
 
-                {/* Weight */}
-                {visibleCharts.weight && (
-                  <Card className="p-5 border-0 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-4">Weight Trend</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient id="gradWeight" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
-                        <Tooltip />
-                        <Legend />
-                        <Area type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} fill="url(#gradWeight)" dot={false} name="Weight (kg)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </Card>
-                )}
-
-                {/* BMI */}
-                {visibleCharts.bmi && (
-                  <Card className="p-5 border-0 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-4">BMI Trend</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient id="gradBmi" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
-                        <Tooltip />
-                        <Legend />
-                        {/* Healthy BMI reference band */}
-                        <Area type="monotone" dataKey="bmi" stroke="#8b5cf6" strokeWidth={2} fill="url(#gradBmi)" dot={false} name="BMI" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </Card>
-                )}
-
-                {/* Health Score */}
-                {visibleCharts.healthScore && (
-                  <Card className="p-5 border-0 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-4">Health Score Trend</h3>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <AreaChart
-                        data={chartData.map((d) => ({
-                          ...d,
-                          score: (() => {
-                            // Compute a per-point health score from available metrics
-                            let total = 0; let count = 0;
-                            if (d.systolic != null && d.diastolic != null) {
-                              const s = d.systolic <= 120 && d.diastolic <= 80 ? 100
-                                : d.systolic <= 130 && d.diastolic <= 85 ? 80
-                                : d.systolic <= 140 && d.diastolic <= 90 ? 60
-                                : d.systolic <= 160 ? 40 : 20;
-                              total += s; count++;
-                            }
-                            if (d.heartRate != null) {
-                              const h = d.heartRate >= 60 && d.heartRate <= 100 ? 100
-                                : d.heartRate >= 50 && d.heartRate <= 110 ? 70 : 40;
-                              total += h; count++;
-                            }
-                            if (d.bmi != null) {
-                              const b = d.bmi >= 18.5 && d.bmi <= 24.9 ? 100
-                                : d.bmi >= 17 && d.bmi <= 27 ? 70 : 40;
-                              total += b; count++;
-                            }
-                            return count > 0 ? Math.round(total / count) : null;
-                          })(),
-                        }))}
-                      >
-                        <defs>
-                          <linearGradient id="gradScore" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.18} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
-                        <Tooltip />
-                        <Legend />
-                        <Area type="monotone" dataKey="score" stroke="#10b981" strokeWidth={2} fill="url(#gradScore)" dot={false} name="Health Score" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </Card>
-                )}
-
-              </div>
-            ) : (
-              <Card className="p-8 border-0 shadow-sm text-center text-gray-400">
-                <Activity className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No charts selected. Use the toggles above to show charts.</p>
-              </Card>
-            )}
+            {/* Health Score */}
+            <MetricChartCard
+              title="Health Score"
+              color="#10b981"
+              chartId="chart-score"
+              weekData={weekData}
+              monthData={monthData}
+              yearData={yearData}
+              renderChart={(data) => (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={data}>
+                    <defs>
+                      <linearGradient id="gradScore" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
+                    <Tooltip />
+                    <Legend />
+                    <Area type="monotone" dataKey="score" stroke="#10b981" strokeWidth={2} fill="url(#gradScore)" dot={false} name="Health Score" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            />
           </div>
 
           {/* Readings History */}
@@ -946,10 +913,7 @@ export default function HealthDashboard() {
               <Card className="p-10 border-0 shadow-sm text-center">
                 <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 mb-4">{t.health_noReadings}</p>
-                <Button
-                  className="bg-cyan-500 hover:bg-cyan-600"
-                  onClick={() => setShowLog(true)}
-                >
+                <Button className="bg-cyan-500 hover:bg-cyan-600" onClick={() => setShowLog(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   {t.health_logReading}
                 </Button>
@@ -979,9 +943,7 @@ export default function HealthDashboard() {
                               {parseFloat(r.weight).toFixed(1)} kg
                             </span>
                           )}
-                          {r.bmi && (
-                            <span className="text-gray-600 font-medium">BMI {parseFloat(r.bmi).toFixed(1)}</span>
-                          )}
+                          {r.bmi && <span className="text-gray-600 font-medium">BMI {parseFloat(r.bmi).toFixed(1)}</span>}
                           {r.temperature && (
                             <span className="flex items-center gap-1 text-orange-600 font-medium">
                               <Thermometer className="w-3.5 h-3.5" />
@@ -1020,9 +982,7 @@ export default function HealthDashboard() {
           <DialogHeader>
             <DialogTitle>Log Health Reading</DialogTitle>
           </DialogHeader>
-
           <div className="space-y-4 py-2">
-            {/* Kiosk selector */}
             <div>
               <Label className="text-sm font-medium">Station *</Label>
               <Select value={form.kioskId} onValueChange={(v) => setForm((p) => ({ ...p, kioskId: v }))}>
@@ -1031,105 +991,48 @@ export default function HealthDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   {kiosks?.map((k) => (
-                    <SelectItem key={k.id} value={k.id}>
-                      {k.name}
-                    </SelectItem>
+                    <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm font-medium">Systolic BP (mmHg)</Label>
-                <Input
-                  type="number"
-                  placeholder="120"
-                  value={form.bloodPressureSystolic}
-                  onChange={(e) => setForm((p) => ({ ...p, bloodPressureSystolic: e.target.value }))}
-                  className="mt-1"
-                />
+                <Input type="number" placeholder="120" value={form.bloodPressureSystolic} onChange={(e) => setForm((p) => ({ ...p, bloodPressureSystolic: e.target.value }))} className="mt-1" />
               </div>
               <div>
                 <Label className="text-sm font-medium">Diastolic BP (mmHg)</Label>
-                <Input
-                  type="number"
-                  placeholder="80"
-                  value={form.bloodPressureDiastolic}
-                  onChange={(e) => setForm((p) => ({ ...p, bloodPressureDiastolic: e.target.value }))}
-                  className="mt-1"
-                />
+                <Input type="number" placeholder="80" value={form.bloodPressureDiastolic} onChange={(e) => setForm((p) => ({ ...p, bloodPressureDiastolic: e.target.value }))} className="mt-1" />
               </div>
               <div>
                 <Label className="text-sm font-medium">Heart Rate (bpm)</Label>
-                <Input
-                  type="number"
-                  placeholder="72"
-                  value={form.heartRate}
-                  onChange={(e) => setForm((p) => ({ ...p, heartRate: e.target.value }))}
-                  className="mt-1"
-                />
+                <Input type="number" placeholder="72" value={form.heartRate} onChange={(e) => setForm((p) => ({ ...p, heartRate: e.target.value }))} className="mt-1" />
               </div>
               <div>
                 <Label className="text-sm font-medium">Temperature (°C)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  placeholder="36.6"
-                  value={form.temperature}
-                  onChange={(e) => setForm((p) => ({ ...p, temperature: e.target.value }))}
-                  className="mt-1"
-                />
+                <Input type="number" step="0.1" placeholder="36.6" value={form.temperature} onChange={(e) => setForm((p) => ({ ...p, temperature: e.target.value }))} className="mt-1" />
               </div>
               <div>
                 <Label className="text-sm font-medium">Weight (kg)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  placeholder="70.0"
-                  value={form.weight}
-                  onChange={(e) => setForm((p) => ({ ...p, weight: e.target.value }))}
-                  className="mt-1"
-                />
+                <Input type="number" step="0.1" placeholder="70.0" value={form.weight} onChange={(e) => setForm((p) => ({ ...p, weight: e.target.value }))} className="mt-1" />
               </div>
               <div>
                 <Label className="text-sm font-medium">Height (cm)</Label>
-                <Input
-                  type="number"
-                  placeholder="170"
-                  value={form.height}
-                  onChange={(e) => setForm((p) => ({ ...p, height: e.target.value }))}
-                  className="mt-1"
-                />
+                <Input type="number" placeholder="170" value={form.height} onChange={(e) => setForm((p) => ({ ...p, height: e.target.value }))} className="mt-1" />
               </div>
             </div>
-
             {form.weight && form.height && (
-              <p className="text-sm text-cyan-600 font-medium">
-                Calculated BMI: {calcBmi(form.weight, form.height)}
-              </p>
+              <p className="text-sm text-cyan-600 font-medium">Calculated BMI: {calcBmi(form.weight, form.height)}</p>
             )}
-
             <div>
               <Label className="text-sm font-medium">Notes (optional)</Label>
-              <Input
-                placeholder="Any observations or comments..."
-                value={form.notes}
-                onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-                className="mt-1"
-              />
+              <Input placeholder="Any observations or comments..." value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} className="mt-1" />
             </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowLog(false); setForm(emptyForm); }}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-cyan-500 hover:bg-cyan-600"
-              onClick={handleSubmit}
-              disabled={logMutation.isPending || !form.kioskId}
-            >
+            <Button variant="outline" onClick={() => { setShowLog(false); setForm(emptyForm); }}>Cancel</Button>
+            <Button className="bg-cyan-500 hover:bg-cyan-600" onClick={handleSubmit} disabled={logMutation.isPending || !form.kioskId}>
               {logMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Save Reading
             </Button>
@@ -1142,16 +1045,11 @@ export default function HealthDashboard() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Reading?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This health reading will be permanently removed from your history.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This health reading will be permanently removed from your history.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-500 hover:bg-red-600"
-              onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
-            >
+            <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

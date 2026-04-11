@@ -206,3 +206,6 @@
 - [x] Add register and login tRPC procedures
 - [x] Build login/register page with email+password form + social login buttons
 - [x] Wire up login page in App.tsx routing
+
+## Health Report Download: Charts-based PDF
+- [x] Replace raw readings list download with a PDF containing all metric charts (weekly/monthly/yearly) for every metric
