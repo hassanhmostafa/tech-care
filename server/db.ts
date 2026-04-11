@@ -58,10 +58,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
     }
+    // NOTE: We intentionally do NOT auto-set the owner to admin here.
+    // Role changes made via the admin panel or direct DB queries should persist.
 
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();

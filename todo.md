@@ -213,3 +213,7 @@
 ## Health Dashboard: Restore Toggles + Fix PDF
 - [x] Restore chart toggle pills (show/hide per metric) on the dashboard
 - [x] PDF always includes all 6 metrics, each at Weekly/Monthly/Yearly (regardless of toggles)
+
+## Bug Fixes: Server Crashes
+- [x] Fix passwordhash column name mismatch causing auth errors
+- [x] Disable seed script from resetting Nermine to admin on every restart
