@@ -62,6 +62,7 @@ import { format } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { downloadHealthScoresPDF } from "@/lib/pdfExport";
 import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface LogFormData {
   kioskId: string;
@@ -579,19 +580,78 @@ export default function HealthDashboard() {
 
       let y = 36;
 
-      // Health score summary
+      // ── Overall Health Score ──
       if (healthScore && healthScore.status === "ok") {
         doc.setFontSize(13);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(8, 145, 178);
         doc.text("Overall Health Score", 14, y);
         y += 7;
-        doc.setFontSize(24);
+
+        doc.setFontSize(28);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(40, 40, 40);
-        doc.text(`${healthScore.score}/100  (${healthScore.grade})`, 14, y + 5);
-        y += 14;
+        doc.text(`${healthScore.score}/100`, 14, y + 6);
+        doc.setFontSize(14);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Grade: ${healthScore.grade}`, 60, y + 6);
+        y += 18;
+
+        // Component breakdown table
+        const breakdown = healthScore.breakdown;
+        const componentRows: [string, string][] = [
+          ["Blood Pressure", breakdown.bloodPressure != null ? `${breakdown.bloodPressure}/100` : "—"],
+          ["Heart Rate", breakdown.heartRate != null ? `${breakdown.heartRate}/100` : "—"],
+          ["BMI", breakdown.bmi != null ? `${breakdown.bmi}/100` : "—"],
+          ["Temperature", breakdown.temperature != null ? `${breakdown.temperature}/100` : "—"],
+        ];
+        autoTable(doc, {
+          startY: y,
+          head: [["Component", "Score / 100"]],
+          body: componentRows,
+          theme: "striped",
+          headStyles: { fillColor: [8, 145, 178], textColor: 255, fontStyle: "bold" },
+          styles: { fontSize: 10, cellPadding: 3 },
+          margin: { left: 14, right: 14 },
+        });
+        y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
       }
+
+      // ── Latest Vitals ──
+      const latestReading = readings[0];
+      if (latestReading) {
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(8, 145, 178);
+        doc.text("Latest Vitals", 14, y);
+        y += 5;
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value", "Unit"]],
+          body: [
+            ["Blood Pressure", latestReading.bloodPressureSystolic && latestReading.bloodPressureDiastolic ? `${latestReading.bloodPressureSystolic}/${latestReading.bloodPressureDiastolic}` : "—", "mmHg"],
+            ["Heart Rate", latestReading.heartRate?.toString() ?? "—", "bpm"],
+            ["Weight", latestReading.weight ?? "—", "kg"],
+            ["Height", latestReading.height ?? "—", "cm"],
+            ["BMI", latestReading.bmi ?? "—", "kg/m²"],
+            ["Temperature", latestReading.temperature ?? "—", "°C"],
+          ],
+          theme: "striped",
+          headStyles: { fillColor: [8, 145, 178], textColor: 255, fontStyle: "bold" },
+          styles: { fontSize: 10, cellPadding: 3 },
+          margin: { left: 14, right: 14 },
+        });
+        y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+      }
+
+      // ── Charts section heading ──
+      if (y + 10 > 270) { doc.addPage(); y = 14; }
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(8, 145, 178);
+      doc.text("Health Trends", 14, y);
+      y += 8;
 
       // Helper: convert a DOM element containing an SVG chart to a PNG data URL
       const svgToDataUrl = (el: HTMLElement): Promise<string> => {

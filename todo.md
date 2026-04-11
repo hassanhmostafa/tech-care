@@ -220,3 +220,6 @@
 
 ## Bug Fix: Download Report Crash
 - [x] Fix crash when pressing Download Report on health dashboard
+
+## PDF Report: Add summary section before charts
+- [x] Add Overall Health Score + breakdown table + Latest Vitals table before the charts in the PDF (same as old report), replacing only the raw readings list with graphs
