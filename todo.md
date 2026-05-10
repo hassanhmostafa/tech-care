@@ -223,3 +223,12 @@
 
 ## PDF Report: Add summary section before charts
 - [x] Add Overall Health Score + breakdown table + Latest Vitals table before the charts in the PDF (same as old report), replacing only the raw readings list with graphs
+
+## Kiosk Integration Merge
+- [x] Copy kiosk integration files from higi_saudi_kiosk into higi_saudi
+- [x] Add kiosk_devices and kiosk_sessions tables to schema and DB
+- [x] Register kioskIntegrationRouter in server/routers.ts
+- [x] Register POST /api/kiosk/data Express route in server/_core/index.ts
+- [x] Add KioskDevicesTab to Admin panel (Kiosk Devices tab)
+- [x] TypeScript: 0 errors, 86 tests passing
+- [x] Push to hassanhmostafa/tech-care GitHub repo

@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { handleKioskData } from "../routers/kioskIntegration";
 import { seedKiosks, seedHealthReadings, updateUserProfile, getUserByOpenId } from "../db";
 import { SEED_KIOSKS } from "../seed";
 import { SEED_HEALTH_READINGS } from "../seedHealth";
@@ -64,6 +65,8 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  // Kiosk data ingestion endpoint (plain HTTP POST from TRIPLEBIGHT kiosk machines)
+  app.post("/api/kiosk/data", handleKioskData);
   // tRPC API
   app.use(
     "/api/trpc",

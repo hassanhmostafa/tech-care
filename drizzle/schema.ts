@@ -225,3 +225,49 @@ export const messages = mysqlTable("messages", {
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
+
+/**
+ * Kiosk devices table.
+ * Stores registered TRIPLEBIGHT kiosk hardware devices.
+ * Each device has a unique hardware ID (MAC/serial) that the kiosk sends with every data submission.
+ */
+export const kioskDevices = mysqlTable("kiosk_devices", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Hardware device ID from the kiosk (e.g. "2CFDA15B9372") */
+  deviceId: varchar("deviceId", { length: 64 }).notNull().unique(),
+  /** Human-readable label for this device */
+  label: varchar("label", { length: 255 }),
+  /** FK to kiosks table — which kiosk location this device belongs to */
+  kioskId: varchar("kioskId", { length: 64 }),
+  /** Whether this device is allowed to submit data */
+  isActive: mysqlEnum("isActive", ["true", "false"]).default("true").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type KioskDevice = typeof kioskDevices.$inferSelect;
+export type InsertKioskDevice = typeof kioskDevices.$inferInsert;
+
+/**
+ * Kiosk sessions table.
+ * A session links a kiosk device to a user for a single measurement session.
+ * The kiosk creates a session (via QR code or manual login), then submits readings
+ * referencing the session token. Expires after 60 minutes.
+ */
+export const kioskSessions = mysqlTable("kiosk_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Session token sent to the kiosk after user authenticates */
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  /** The device that created this session */
+  deviceId: varchar("deviceId", { length: 64 }).notNull(),
+  /** The user who authenticated at the kiosk */
+  userId: int("userId").notNull(),
+  /** Session status */
+  status: mysqlEnum("status", ["active", "used", "expired"]).default("active").notNull(),
+  /** When this session expires (60 minutes after creation) */
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type KioskSession = typeof kioskSessions.$inferSelect;
+export type InsertKioskSession = typeof kioskSessions.$inferInsert;
