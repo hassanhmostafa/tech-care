@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
@@ -106,16 +106,24 @@ export default function Admin() {
   const isAr = language === "ar";
   const utils = trpc.useUtils();
 
-  // Default landing tab depends on adminType:
-  // super → admins, expert → expert-requests, kiosk → kiosk-test
-  const defaultTab = useMemo<Tab>(() => {
-    if (!user) return "expert-requests";
-    if (user.adminType === "kiosk") return "kiosk-test";
-    if (user.adminType === "expert") return "expert-requests";
-    return "admins"; // super or fallback
-  }, [user?.adminType]);
+  // Start with a safe placeholder; once auth resolves we set the real default.
+  const [activeTab, setActiveTab] = useState<Tab>("expert-requests");
+  const [tabInitialised, setTabInitialised] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
+  // Once the user object is available (auth finished loading), set the correct
+  // default tab — but only once, so manual tab clicks are not overridden.
+  useEffect(() => {
+    if (loading || tabInitialised) return;
+    if (!user) return;
+    setTabInitialised(true);
+    if (user.adminType === "kiosk") {
+      setActiveTab("kiosk-test");
+    } else if (user.adminType === "expert") {
+      setActiveTab("expert-requests");
+    } else {
+      setActiveTab("admins"); // super or fallback
+    }
+  }, [user, loading, tabInitialised]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<KioskFormData>(emptyForm);
