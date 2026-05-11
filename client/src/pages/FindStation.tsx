@@ -63,14 +63,7 @@ export default function FindStation() {
               <h1 className="text-4xl font-bold mb-2">{t.findStation_title}</h1>
               <p className="text-cyan-50">{t.findStation_subtitle}</p>
             </div>
-            {isAuthenticated && (
-              <Link href="/kiosk-requests">
-                <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/30 text-white/90 text-xs font-medium transition-colors whitespace-nowrap">
-                  <ClipboardList className="w-3.5 h-3.5" />
-                  {language === "ar" ? "تسجيل كشكك" : "Register Your Kiosk"}
-                </button>
-              </Link>
-            )}
+
           </div>
         </section>
 

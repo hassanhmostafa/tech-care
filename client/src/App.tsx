@@ -12,7 +12,7 @@ import HealthDashboard from "./pages/HealthDashboard";
 import Profile from "./pages/Profile";
 import AiPlan from "./pages/AiPlan";
 import MyKiosks from "./pages/MyKiosks";
-import KioskRequests from "./pages/KioskRequests";
+
 import MyBookings from "./pages/MyBookings";
 import FindExperts from "./pages/FindExperts";
 import ExpertInbox from "./pages/ExpertInbox";
@@ -31,7 +31,7 @@ function Router() {
       <Route path={"/profile"} component={Profile} />
       <Route path={"/ai-plan"} component={AiPlan} />
       <Route path={"/my-kiosks"} component={MyKiosks} />
-      <Route path={"/kiosk-requests"} component={KioskRequests} />
+
       <Route path={"/my-bookings"} component={MyBookings} />
       <Route path={"/experts"} component={FindExperts} />
       <Route path={"/expert-inbox"} component={ExpertInbox} />

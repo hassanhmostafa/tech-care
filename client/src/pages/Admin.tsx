@@ -125,9 +125,7 @@ export default function Admin() {
     enabled: isAuthenticated && user?.role === "admin",
   });
 
-  const { data: kioskRequests, isLoading: requestsLoading } = trpc.admin.listKioskRequests.useQuery(undefined, {
-    enabled: isAuthenticated && user?.role === "admin",
-  });
+
   const { data: expertRequests, isLoading: expertRequestsLoading } = trpc.expertRequests.list.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
   });
@@ -144,10 +142,6 @@ export default function Admin() {
   const [adminSearchQuery, setAdminSearchQuery] = useState("");
   const [selectedAdminType, setSelectedAdminType] = useState<"kiosk" | "expert" | "super">("kiosk");
 
-  const { data: pendingCount } = trpc.admin.pendingRequestCount.useQuery(undefined, {
-    enabled: isAuthenticated && user?.role === "admin",
-    refetchInterval: 30000,
-  });
 
   const approveExpertMutation = trpc.expertRequests.approve.useMutation({
     onSuccess: () => {
@@ -166,24 +160,6 @@ export default function Admin() {
     onError: (e) => toast.error(e.message),
   });
 
-  const approveRequestMutation = trpc.admin.approveKioskRequest.useMutation({
-    onSuccess: () => {
-      utils.admin.listKioskRequests.invalidate();
-      utils.admin.pendingRequestCount.invalidate();
-      utils.admin.listKiosks.invalidate();
-      toast.success("Request approved");
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const rejectRequestMutation = trpc.admin.rejectKioskRequest.useMutation({
-    onSuccess: () => {
-      utils.admin.listKioskRequests.invalidate();
-      utils.admin.pendingRequestCount.invalidate();
-      toast.success("Request rejected");
-    },
-    onError: (e) => toast.error(e.message),
-  });
 
   const createMutation = trpc.admin.createKiosk.useMutation({
     onSuccess: () => {
@@ -437,22 +413,7 @@ export default function Admin() {
               <Users className="w-4 h-4" />
               Users ({allUsers?.length ?? 0})
             </button>
-            <button
-              onClick={() => setActiveTab("requests")}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "requests"
-                  ? "border-cyan-500 text-cyan-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <ClipboardList className="w-4 h-4" />
-              Kiosk Registrations
-              {(pendingCount ?? 0) > 0 && (
-                <span className="ml-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full px-1.5 py-0.5">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
+
             <button
               onClick={() => setActiveTab("expert-requests")}
               className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
@@ -538,104 +499,7 @@ export default function Admin() {
           </section>
         )}
 
-        {/* ── Requests Tab ── */}
-        {activeTab === "requests" && (
-          <section className="py-8">
-            <div className="container max-w-4xl space-y-4">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Kiosk Registrations
-                {(pendingCount ?? 0) > 0 && (
-                  <Badge className="ml-2 bg-yellow-100 text-yellow-700">{pendingCount} pending</Badge>
-                )}
-              </h2>
-              {requestsLoading ? (
-                <div className="flex justify-center py-20">
-                  <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
-                </div>
-              ) : !kioskRequests || kioskRequests.length === 0 ? (
-                <Card>
-                  <CardContent className="py-16 text-center">
-                    <ClipboardList className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No requests yet.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  {kioskRequests.map((req) => {
-                    const payload = req.payload as Record<string, unknown>;
-                    const isPending = req.status === "pending";
-                    return (
-                      <Card key={req.id} className={isPending ? "border-yellow-200" : ""}>
-                        <CardContent className="py-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className={req.type === "create" ? "text-green-700 border-green-200" : "text-red-700 border-red-200"}>
-                                  {req.type === "create" ? "Create" : "Delete"}
-                                </Badge>
-                                <Badge className={
-                                  req.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                                  req.status === "approved" ? "bg-green-100 text-green-700" :
-                                  "bg-red-100 text-red-700"
-                                }>
-                                  {isAr
-                                    ? (req.status === "pending" ? "معلق" : req.status === "approved" ? "موافق" : "مرفوض")
-                                    : req.status}
-                                </Badge>
-                                <span className="text-xs text-gray-400">
-                                  {new Date(req.createdAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="font-semibold text-gray-900">
-                                {req.type === "create"
-                                  ? String(payload.name ?? "New Kiosk")
-                                  : String(payload.kioskName ?? payload.kioskId ?? "Unknown Kiosk")}
-                              </p>
-                              {req.type === "create" && !!payload.location && (
-                                <p className="text-sm text-gray-500">{String(payload.location)}</p>
-                              )}
-                              {req.type === "create" && !!payload.address && (
-                                <p className="text-sm text-gray-500">{String(payload.address)}</p>
-                              )}
-                              {req.message && (
-                                <p className="text-sm text-gray-600 mt-1 italic">"{req.message}"</p>
-                              )}
-                              {req.adminNote && (
-                                <p className="text-sm mt-2 p-2 bg-gray-50 rounded border-l-2 border-cyan-400">
-                                  <span className="font-medium">Admin note:</span> {req.adminNote}
-                                </p>
-                              )}
-                            </div>
-                            {isPending && (
-                              <div className="flex gap-2 shrink-0">
-                                <Button
-                                  size="sm"
-                                  className="bg-green-500 hover:bg-green-600 text-white"
-                                  onClick={() => approveRequestMutation.mutate({ requestId: req.id })}
-                                  disabled={approveRequestMutation.isPending || rejectRequestMutation.isPending}
-                                >
-                                  {approveRequestMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Approve"}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => rejectRequestMutation.mutate({ requestId: req.id })}
-                                  disabled={approveRequestMutation.isPending || rejectRequestMutation.isPending}
-                                >
-                                  {rejectRequestMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Reject"}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
+
 
         {/* ── Kiosks Tab ── */}
         {activeTab === "kiosks" && (

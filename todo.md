@@ -236,3 +236,10 @@
 ## Kiosk Test Console
 - [x] Build KioskTestTab component (create session + fill readings + POST to /api/kiosk/data)
 - [x] Add Kiosk Test tab to Admin panel
+
+## Remove Kiosk Registration Workflow
+- [x] Remove Kiosk Registrations tab from Admin panel (tab button + full section)
+- [x] Remove related queries/mutations from Admin.tsx (listKioskRequests, pendingRequestCount, approveKioskRequest, rejectKioskRequest)
+- [x] Remove Register Your Kiosk button from FindStation page
+- [x] Remove /kiosk-requests route and KioskRequests import from App.tsx
+- [x] TypeScript: 0 errors
