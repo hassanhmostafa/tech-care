@@ -65,6 +65,17 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  // Version/health check endpoint
+  app.get("/api/version", (_req, res) => {
+    res.json({
+      project: "Tech Care",
+      version: "1.0.0",
+      commit: "661519b",
+      features: ["kiosk-integration", "expert-chat", "ai-plan", "bookings", "health-readings"],
+      kioskDataEndpoint: "/api/kiosk/data",
+      timestamp: new Date().toISOString(),
+    });
+  });
   // Kiosk data ingestion endpoint (plain HTTP POST from TRIPLEBIGHT kiosk machines)
   app.post("/api/kiosk/data", handleKioskData);
   // tRPC API
