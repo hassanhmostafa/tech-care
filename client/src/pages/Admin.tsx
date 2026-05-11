@@ -139,6 +139,14 @@ export default function Admin() {
     onError: (e) => toast.error(e.message),
   });
 
+  const updateAdminTypeMutation = trpc.admin.updateAdminType.useMutation({
+    onSuccess: () => {
+      utils.admin.listUsers.invalidate();
+      toast.success("Admin type updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const [adminSearchQuery, setAdminSearchQuery] = useState("");
   const [selectedAdminType, setSelectedAdminType] = useState<"kiosk" | "expert" | "super">("kiosk");
 
@@ -376,32 +384,14 @@ export default function Admin() {
               <h1 className="text-3xl font-bold mb-1">Admin Panel</h1>
               <p className="text-slate-300">Manage Tech Care kiosk locations and users</p>
             </div>
-            {activeTab === "kiosks" && (
-              <Button
-                className="bg-cyan-500 hover:bg-cyan-600"
-                onClick={() => { setEditingId(null); setFormData(emptyForm); setServiceInput(""); setShowForm(true); }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Kiosk
-              </Button>
-            )}
+
           </div>
         </section>
 
         {/* Tab Navigation */}
         <section className="bg-white border-b border-gray-200">
           <div className="container flex gap-0">
-            <button
-              onClick={() => setActiveTab("kiosks")}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "kiosks"
-                  ? "border-cyan-500 text-cyan-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              Kiosks ({kiosks?.length ?? 0})
-            </button>
+
             <button
               onClick={() => setActiveTab("users")}
               className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
@@ -469,147 +459,11 @@ export default function Admin() {
           </div>
         </section>
 
-        {/* Stats bar (kiosks tab only) */}
-        {activeTab === "kiosks" && (
-          <section className="bg-white border-b border-gray-200 py-4">
-            <div className="container flex gap-8 text-sm">
-              <div>
-                <span className="font-semibold text-gray-900">{kiosks?.length ?? 0}</span>
-                <span className="text-gray-500 ml-1">Total Kiosks</span>
-              </div>
-              <div>
-                <span className="font-semibold text-green-600">
-                  {kiosks?.filter((k) => k.isActive === "true").length ?? 0}
-                </span>
-                <span className="text-gray-500 ml-1">Active</span>
-              </div>
-              <div>
-                <span className="font-semibold text-red-500">
-                  {kiosks?.filter((k) => k.isActive === "false").length ?? 0}
-                </span>
-                <span className="text-gray-500 ml-1">Inactive</span>
-              </div>
-              <div>
-                <span className="font-semibold text-cyan-600">
-                  {kiosks?.filter((k) => k.ownerId !== null).length ?? 0}
-                </span>
-                <span className="text-gray-500 ml-1">With Owner</span>
-              </div>
-            </div>
-          </section>
-        )}
 
 
 
-        {/* ── Kiosks Tab ── */}
-        {activeTab === "kiosks" && (
-          <section className="py-8">
-            <div className="container">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-20">
-                  <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {kiosks?.map((kiosk) => (
-                    <Card key={kiosk.id} className="p-5 border-0 shadow-sm">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-1 flex-wrap">
-                            <h3 className="font-semibold text-gray-900 truncate">{kiosk.name}</h3>
-                            <Badge
-                              variant={kiosk.isActive === "true" ? "default" : "secondary"}
-                              className={kiosk.isActive === "true" ? "bg-green-100 text-green-700 border-green-200" : ""}
-                            >
-                              {kiosk.isActive === "true" ? "Active" : "Inactive"}
-                            </Badge>
-                            {kiosk.ownerId && (
-                              <Badge variant="outline" className="text-cyan-600 border-cyan-200 bg-cyan-50 flex items-center gap-1">
-                                <UserCog className="w-3 h-3" />
-                                {getOwnerName(kiosk.ownerId)}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5" />
-                              {kiosk.address}
-                            </span>
-                            {kiosk.phone && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="w-3.5 h-3.5" />
-                                {kiosk.phone}
-                              </span>
-                            )}
-                            {kiosk.email && (
-                              <span className="flex items-center gap-1">
-                                <Mail className="w-3.5 h-3.5" />
-                                {kiosk.email}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {Array.isArray(kiosk.services) && kiosk.services.slice(0, 4).map((s: string) => (
-                              <span key={s} className="text-xs bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">{s}</span>
-                            ))}
-                            {Array.isArray(kiosk.services) && kiosk.services.length > 4 && (
-                              <span className="text-xs text-gray-400">+{kiosk.services.length - 4} more</span>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {kiosk.latitude}, {kiosk.longitude} · Rating: {kiosk.rating ?? "N/A"} ·{" "}
-                            {Array.isArray(kiosk.hours) ? kiosk.hours.length : 0} hour entries
-                          </p>
-                        </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openAssignOwner(kiosk)}
-                            title="Assign Owner"
-                            className="text-cyan-600 hover:text-cyan-700 hover:border-cyan-300"
-                          >
-                            <UserCog className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              toggleMutation.mutate({
-                                id: kiosk.id,
-                                isActive: kiosk.isActive === "true" ? "false" : "true",
-                              })
-                            }
-                            disabled={toggleMutation.isPending}
-                            title={kiosk.isActive === "true" ? "Deactivate" : "Activate"}
-                          >
-                            {kiosk.isActive === "true" ? (
-                              <ToggleRight className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <ToggleLeft className="w-4 h-4 text-gray-400" />
-                            )}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(kiosk)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-500 hover:text-red-600 hover:border-red-300"
-                            onClick={() => setDeleteId(kiosk.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
+
 
         {/* ── Users Tab ── */}
         {activeTab === "users" && (
@@ -824,9 +678,32 @@ export default function Admin() {
                           <p className="font-medium text-gray-900">{u.name || "Unknown"}</p>
                           <p className="text-sm text-gray-500">{u.email}</p>
                         </div>
-                        <Badge className="bg-purple-100 text-purple-700 border-purple-200">
-                          Admin
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={
+                            (u as any).adminType === "super" ? "bg-purple-100 text-purple-700 border-purple-200" :
+                            (u as any).adminType === "expert" ? "bg-teal-100 text-teal-700 border-teal-200" :
+                            (u as any).adminType === "kiosk" ? "bg-cyan-100 text-cyan-700 border-cyan-200" :
+                            "bg-gray-100 text-gray-500 border-gray-200"
+                          }>
+                            {(u as any).adminType ?? "no type"}
+                          </Badge>
+                          <Select
+                            value={(u as any).adminType ?? ""}
+                            onValueChange={(v) =>
+                              updateAdminTypeMutation.mutate({ userId: u.id, adminType: v as "kiosk" | "expert" | "super" })
+                            }
+                            disabled={updateAdminTypeMutation.isPending}
+                          >
+                            <SelectTrigger className="w-36 h-8 text-xs">
+                              <SelectValue placeholder="Set type…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="kiosk">Kiosk Admin</SelectItem>
+                              <SelectItem value="expert">Expert Admin</SelectItem>
+                              <SelectItem value="super">Super Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}

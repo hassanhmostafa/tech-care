@@ -21,6 +21,7 @@ import {
   updateBookingStatus,
   promoteToAdmin,
   listExperts,
+  getDb,
 } from "../db";
 import { nanoid } from "nanoid";
 
@@ -256,6 +257,28 @@ export const adminRouter = router({
     }))
     .mutation(async ({ input }) => {
       await promoteToAdmin(input.userId, input.adminType);
+      return { success: true };
+    }),
+
+  /**
+   * Update the adminType of an existing admin user.
+   * Only super admins can call this.
+   * Frontend: trpc.admin.updateAdminType.useMutation()
+   */
+  updateAdminType: superAdmin
+    .input(z.object({
+      userId: z.number(),
+      adminType: z.enum(["kiosk", "expert", "super"]),
+    }))
+    .mutation(async ({ input }) => {
+      const database = await getDb();
+      if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+      const { users } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      await database
+        .update(users)
+        .set({ adminType: input.adminType, updatedAt: new Date() })
+        .where(eq(users.id, input.userId));
       return { success: true };
     }),
 

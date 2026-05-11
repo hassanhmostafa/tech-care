@@ -243,3 +243,10 @@
 - [x] Remove Register Your Kiosk button from FindStation page
 - [x] Remove /kiosk-requests route and KioskRequests import from App.tsx
 - [x] TypeScript: 0 errors
+
+## Admin Role System Improvements
+- [x] Remove old Kiosks tab from Admin panel (tab button, stats bar, full section)
+- [x] Set admin@gmail.com adminType = super via DB update
+- [x] Add updateAdminType procedure to server (super admin only)
+- [x] Add adminType badge + inline dropdown to Current Admins list in Admins tab
+- [x] TypeScript: 0 errors
