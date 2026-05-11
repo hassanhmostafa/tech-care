@@ -107,12 +107,12 @@ export default function Admin() {
   const utils = trpc.useUtils();
 
   // Default landing tab depends on adminType:
-  // super → users, expert → expert-requests, kiosk → kiosk-devices
+  // super → admins, expert → expert-requests, kiosk → kiosk-test
   const defaultTab = useMemo<Tab>(() => {
     if (!user) return "expert-requests";
-    if (user.adminType === "kiosk") return "kiosk-devices";
+    if (user.adminType === "kiosk") return "kiosk-test";
     if (user.adminType === "expert") return "expert-requests";
-    return "users"; // super or fallback
+    return "admins"; // super or fallback
   }, [user?.adminType]);
 
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
