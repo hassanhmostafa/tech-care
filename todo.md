@@ -259,3 +259,12 @@
 - [x] Kiosk Test tab: kiosk + super
 - [x] Admins tab: super only
 - [x] TypeScript: 0 errors
+
+## Admin Panel Fixes
+- [x] Fix adminType 'no type' bug: getAllUsers/searchUsers now return adminType field
+- [x] Remove (u as any) casts in Admins tab badge display
+- [x] Set default landing tab by adminType (super→users, expert→expert-requests, kiosk→kiosk-devices)
+- [x] Remove kiosk_owner role from schema, DB enum, all server/client code
+- [x] Downgrade kiosk_owner user (hassanelsaeed2001m@outlook.com) to regular user
+- [x] ALTER TABLE to remove kiosk_owner from MySQL enum
+- [x] TypeScript: 0 errors

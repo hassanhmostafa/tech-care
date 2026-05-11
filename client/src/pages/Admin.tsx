@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
@@ -98,7 +98,7 @@ const emptyForm: KioskFormData = {
   services: [],
 };
 
-type Tab = "kiosks" | "users" | "requests" | "expert-requests" | "kiosk-devices" | "kiosk-test" | "admins";
+type Tab = "users" | "expert-requests" | "kiosk-devices" | "kiosk-test" | "admins";
 
 export default function Admin() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -106,7 +106,16 @@ export default function Admin() {
   const isAr = language === "ar";
   const utils = trpc.useUtils();
 
-  const [activeTab, setActiveTab] = useState<Tab>("kiosks");
+  // Default landing tab depends on adminType:
+  // super → users, expert → expert-requests, kiosk → kiosk-devices
+  const defaultTab = useMemo<Tab>(() => {
+    if (!user) return "expert-requests";
+    if (user.adminType === "kiosk") return "kiosk-devices";
+    if (user.adminType === "expert") return "expert-requests";
+    return "users"; // super or fallback
+  }, [user?.adminType]);
+
+  const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<KioskFormData>(emptyForm);
@@ -115,7 +124,7 @@ export default function Admin() {
 
   // Owner assignment dialog state
   const [assigningKiosk, setAssigningKiosk] = useState<{ id: string; name: string; ownerId: number | null } | null>(null);
-  const [selectedOwner, setSelectedOwner] = useState<{ id: number; name: string | null; email: string | null; role: "user" | "kiosk_owner" | "expert" | "admin" } | null>(null);
+  const [selectedOwner, setSelectedOwner] = useState<{ id: number; name: string | null; email: string | null; role: "user" | "expert" | "admin" } | null>(null);
 
   const { data: kiosks, isLoading } = trpc.admin.listKiosks.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
@@ -503,8 +512,6 @@ export default function Admin() {
                             className={
                               u.role === "admin"
                                 ? "border-red-200 text-red-600 bg-red-50"
-                                : u.role === "kiosk_owner"
-                                ? "border-cyan-200 text-cyan-600 bg-cyan-50"
                                 : u.role === "expert"
                                 ? "border-teal-200 text-teal-600 bg-teal-50"
                                 : "border-gray-200 text-gray-600"
@@ -517,7 +524,7 @@ export default function Admin() {
                             onValueChange={(role) =>
                               updateUserRoleMutation.mutate({
                                 userId: u.id,
-                                role: role as "user" | "kiosk_owner" | "admin",
+                                role: role as "user" | "expert" | "admin",
                               })
                             }
                             disabled={updateUserRoleMutation.isPending}
@@ -527,7 +534,6 @@ export default function Admin() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="user">user</SelectItem>
-                              <SelectItem value="kiosk_owner">kiosk_owner</SelectItem>
                               <SelectItem value="expert">expert</SelectItem>
                               <SelectItem value="admin">admin</SelectItem>
                             </SelectContent>
@@ -695,15 +701,15 @@ export default function Admin() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge className={
-                            (u as any).adminType === "super" ? "bg-purple-100 text-purple-700 border-purple-200" :
-                            (u as any).adminType === "expert" ? "bg-teal-100 text-teal-700 border-teal-200" :
-                            (u as any).adminType === "kiosk" ? "bg-cyan-100 text-cyan-700 border-cyan-200" :
+                            u.adminType === "super" ? "bg-purple-100 text-purple-700 border-purple-200" :
+                            u.adminType === "expert" ? "bg-teal-100 text-teal-700 border-teal-200" :
+                            u.adminType === "kiosk" ? "bg-cyan-100 text-cyan-700 border-cyan-200" :
                             "bg-gray-100 text-gray-500 border-gray-200"
                           }>
-                            {(u as any).adminType ?? "no type"}
+                            {u.adminType ?? "no type"}
                           </Badge>
                           <Select
-                            value={(u as any).adminType ?? ""}
+                            value={u.adminType ?? ""}
                             onValueChange={(v) =>
                               updateAdminTypeMutation.mutate({ userId: u.id, adminType: v as "kiosk" | "expert" | "super" })
                             }
@@ -758,7 +764,6 @@ export default function Admin() {
                 </p>
               )}
               <p className="text-xs text-gray-400">
-                Assigning a user will automatically promote them to the "kiosk_owner" role.
               </p>
             </div>
           </div>

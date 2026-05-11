@@ -183,7 +183,7 @@ export default function ExpertInbox() {
     );
   }
 
-  if (!isExpert && user?.role !== "user" && user?.role !== "kiosk_owner" && user?.role !== "admin") {
+  if (!isExpert && user?.role !== "user" && user?.role !== "admin") {
     return (
       <div className="min-h-screen flex flex-col">
         <Navigation />

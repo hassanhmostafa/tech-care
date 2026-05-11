@@ -145,7 +145,7 @@ export default function MyKiosks() {
   const [viewingBookingsKiosk, setViewingBookingsKiosk] = useState<{ id: string; name: string } | null>(null);
 
   const { data: myKiosks, isLoading } = trpc.kioskOwner.myKiosks.useQuery(undefined, {
-    enabled: isAuthenticated && (user?.role === "kiosk_owner" || user?.role === "admin"),
+    enabled: isAuthenticated && (user?.role === "admin"),
   });
 
   const { data: kioskBookings, isLoading: bookingsLoading } = trpc.kioskOwner.getKioskBookings.useQuery(
@@ -232,7 +232,7 @@ export default function MyKiosks() {
     );
   }
 
-  if (user?.role !== "kiosk_owner" && user?.role !== "admin") {
+  if (user?.role !== "admin") {
     return (
       <div className="min-h-screen flex flex-col">
         <Navigation />

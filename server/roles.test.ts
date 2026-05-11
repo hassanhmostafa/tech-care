@@ -33,7 +33,7 @@ vi.mock("./db", () => {
   const kiosk002 = { ...kiosk001, id: "kiosk-002", ownerId: null };
   const users = [
     { id: 1, name: "Admin User", email: "admin@test.com", role: "admin" as const },
-    { id: 2, name: "Owner User", email: "owner@test.com", role: "kiosk_owner" as const },
+    { id: 2, name: "Owner User", email: "owner@test.com", role: "user" as const },
     { id: 3, name: "Regular User", email: "user@test.com", role: "user" as const },
   ];
   return {
@@ -68,7 +68,7 @@ vi.mock("./db", () => {
 
 // ── Context factories ─────────────────────────────────────────────────────────
 
-function makeCtx(role: "user" | "kiosk_owner" | "admin" | null, userId = 1): TrpcContext {
+function makeCtx(role: "user" | "user" | "admin" | null, userId = 1): TrpcContext {
   return {
     user: role
       ? {
@@ -106,7 +106,7 @@ describe("admin.listKiosks", () => {
   });
 
   it("throws FORBIDDEN for kiosk_owner", async () => {
-    const caller = appRouter.createCaller(makeCtx("kiosk_owner", 2));
+    const caller = appRouter.createCaller(makeCtx("user", 2));
     await expect(caller.admin.listKiosks()).rejects.toThrow();
   });
 
@@ -144,7 +144,7 @@ describe("admin.assignKioskOwner", () => {
   });
 
   it("throws FORBIDDEN for kiosk_owner", async () => {
-    const caller = appRouter.createCaller(makeCtx("kiosk_owner", 2));
+    const caller = appRouter.createCaller(makeCtx("user", 2));
     await expect(
       caller.admin.assignKioskOwner({ kioskId: "kiosk-001", ownerId: 2 })
     ).rejects.toThrow();
@@ -154,14 +154,14 @@ describe("admin.assignKioskOwner", () => {
 describe("admin.updateUserRole", () => {
   it("allows admin to promote a user to kiosk_owner", async () => {
     const caller = appRouter.createCaller(makeCtx("admin"));
-    const result = await caller.admin.updateUserRole({ userId: 3, role: "kiosk_owner" });
+    const result = await caller.admin.updateUserRole({ userId: 3, role: "user" });
     expect(result.success).toBe(true);
   });
 
   it("throws FORBIDDEN for regular user", async () => {
     const caller = appRouter.createCaller(makeCtx("user"));
     await expect(
-      caller.admin.updateUserRole({ userId: 3, role: "kiosk_owner" })
+      caller.admin.updateUserRole({ userId: 3, role: "user" })
     ).rejects.toThrow();
   });
 });
@@ -170,7 +170,7 @@ describe("admin.updateUserRole", () => {
 
 describe("kioskOwner.myKiosks", () => {
   it("returns kiosks owned by the current kiosk_owner", async () => {
-    const caller = appRouter.createCaller(makeCtx("kiosk_owner", 2));
+    const caller = appRouter.createCaller(makeCtx("user", 2));
     const result = await caller.kioskOwner.myKiosks();
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBe(1);
@@ -191,7 +191,7 @@ describe("kioskOwner.myKiosks", () => {
 describe("kioskOwner.updateMyKiosk", () => {
   it("allows kiosk_owner to update their own kiosk", async () => {
     // userId=2 matches mockKiosk.ownerId=2
-    const caller = appRouter.createCaller(makeCtx("kiosk_owner", 2));
+    const caller = appRouter.createCaller(makeCtx("user", 2));
     const result = await caller.kioskOwner.updateMyKiosk({
       kioskId: "kiosk-001",
       data: { name: "Updated Name" },
@@ -201,14 +201,14 @@ describe("kioskOwner.updateMyKiosk", () => {
 
   it("throws FORBIDDEN when kiosk_owner tries to edit another owner's kiosk", async () => {
     // userId=3 but kiosk ownerId=2
-    const caller = appRouter.createCaller(makeCtx("kiosk_owner", 3));
+    const caller = appRouter.createCaller(makeCtx("user", 3));
     await expect(
       caller.kioskOwner.updateMyKiosk({ kioskId: "kiosk-001", data: { name: "Hack" } })
     ).rejects.toThrow();
   });
 
   it("throws NOT_FOUND for non-existent kiosk", async () => {
-    const caller = appRouter.createCaller(makeCtx("kiosk_owner", 2));
+    const caller = appRouter.createCaller(makeCtx("user", 2));
     await expect(
       caller.kioskOwner.updateMyKiosk({ kioskId: "nonexistent", data: { name: "X" } })
     ).rejects.toThrow("Kiosk not found");

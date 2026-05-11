@@ -128,7 +128,7 @@ export const adminRouter = router({
     .mutation(async ({ input }) => {
       await updateKiosk(input.kioskId, { ownerId: input.ownerId ?? undefined });
       if (input.ownerId !== null) {
-        await updateUserRole(input.ownerId, "kiosk_owner");
+        // kiosk_owner role removed
       }
       return { success: true };
     }),
@@ -138,7 +138,7 @@ export const adminRouter = router({
    * Frontend: trpc.admin.updateUserRole.useMutation()
    */
   updateUserRole: adminProcedure
-    .input(z.object({ userId: z.number(), role: z.enum(["user", "kiosk_owner", "admin"]) }))
+    .input(z.object({ userId: z.number(), role: z.enum(["user", "expert", "admin"]) }))
     .mutation(async ({ input }) => {
       await updateUserRole(input.userId, input.role);
       return { success: true };
@@ -194,7 +194,7 @@ export const adminRouter = router({
           ownerId: req.userId,  // requester becomes the owner
         });
         // Promote requester to kiosk_owner role if they are a plain user
-        await updateUserRole(req.userId, "kiosk_owner");
+        // kiosk_owner role removed
       } else if (req.type === "delete") {
         const payload = req.payload as Record<string, unknown>;
         if (payload.kioskId) {
@@ -296,7 +296,7 @@ export const adminRouter = router({
    * Frontend: trpc.admin.updateUserRoleExtended.useMutation()
    */
   updateUserRoleExtended: adminProcedure
-    .input(z.object({ userId: z.number(), role: z.enum(["user", "kiosk_owner", "expert", "admin"]) }))
+    .input(z.object({ userId: z.number(), role: z.enum(["user", "expert", "admin"]) }))
     .mutation(async ({ input }) => {
       await updateUserRole(input.userId, input.role);
       return { success: true };

@@ -41,7 +41,7 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function makeCtx(role: "user" | "kiosk_owner" | "admin" = "user", id = 1) {
+function makeCtx(role: "user" | "user" | "admin" = "user", id = 1) {
   return {
     user: { id, role, name: "Test User", email: "test@example.com" },
     req: {} as any,

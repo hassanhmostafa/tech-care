@@ -19,11 +19,10 @@ export const users = mysqlTable("users", {
   /**
    * User role:
    * - user: regular user
-   * - kiosk_owner: manages one or more kiosks
    * - expert: health specialist who can chat with users
    * - admin: administrative user (see adminType for sub-role)
    */
-  role: mysqlEnum("role", ["user", "kiosk_owner", "expert", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "expert", "admin"]).default("user").notNull(),
   /**
    * Admin sub-role (only meaningful when role = admin):
    * - kiosk: manages kiosk creation/deletion requests

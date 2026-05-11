@@ -46,7 +46,7 @@ export default function Navigation() {
               </span>
             </Link>
           ))}
-          {(user?.role === "kiosk_owner" || user?.role === "admin") && (
+          {(user?.role === "admin") && (
             <Link href="/my-kiosks">
               <span
                 className={`transition-colors cursor-pointer font-medium flex items-center gap-1 ${
@@ -187,7 +187,7 @@ export default function Navigation() {
                 </div>
               </Link>
             ))}
-            {(user?.role === "kiosk_owner" || user?.role === "admin") && (
+            {(user?.role === "admin") && (
               <Link href="/my-kiosks">
                 <div
                   className="text-gray-700 hover:text-cyan-600 py-2 cursor-pointer font-medium flex items-center gap-1"

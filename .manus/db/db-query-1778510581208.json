@@ -1,0 +1,43 @@
+{
+  "query": "SELECT id, name, email, role, adminType FROM users WHERE role = 'admin' ORDER BY id;\nSELECT COUNT(*) as kiosk_owner_count FROM users WHERE role = 'kiosk_owner';\nSELECT id, name, email FROM users WHERE role = 'kiosk_owner';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3qmwguNrnMRfRdb.root --database adQspJefUTFqKyf6yHum6G --execute SELECT id, name, email, role, adminType FROM users WHERE role = 'admin' ORDER BY id;\nSELECT COUNT(*) as kiosk_owner_count FROM users WHERE role = 'kiosk_owner';\nSELECT id, name, email FROM users WHERE role = 'kiosk_owner';",
+  "rows": [
+    {
+      "id": "360042",
+      "name": "Hassan Mostafa",
+      "email": "hassanelsaeed2001@gmail.com",
+      "role": "admin",
+      "adminType": "super"
+    },
+    {
+      "id": "1410259",
+      "name": "Hassan Hatem",
+      "email": "admin@gmail.com",
+      "role": "admin",
+      "adminType": "super"
+    },
+    {
+      "id": "2460221",
+      "name": "Kiosk Admin",
+      "email": "kiosk_admin@gmail.com",
+      "role": "admin",
+      "adminType": "kiosk"
+    },
+    {
+      "id": "2460224",
+      "name": "Expert Admin",
+      "email": "expert_admin@gmail.com",
+      "role": "admin",
+      "adminType": "expert"
+    }
+  ],
+  "messages": [
+    "kiosk_owner_count",
+    "1",
+    "id\tname\temail",
+    "510304\tHassan Mostafa\thassanelsaeed2001m@outlook.com"
+  ],
+  "stdout": "id\tname\temail\trole\tadminType\n360042\tHassan Mostafa\thassanelsaeed2001@gmail.com\tadmin\tsuper\n1410259\tHassan Hatem\tadmin@gmail.com\tadmin\tsuper\n2460221\tKiosk Admin\tkiosk_admin@gmail.com\tadmin\tkiosk\n2460224\tExpert Admin\texpert_admin@gmail.com\tadmin\texpert\nkiosk_owner_count\n1\nid\tname\temail\n510304\tHassan Mostafa\thassanelsaeed2001m@outlook.com\n",
+  "stderr": "",
+  "execution_time_ms": 2164
+}

@@ -280,6 +280,7 @@ export async function getAllUsers() {
     name: users.name,
     email: users.email,
     role: users.role,
+    adminType: users.adminType,
   }).from(users).orderBy(users.name);
 }
 
@@ -296,6 +297,7 @@ export async function searchUsers(query: string) {
     name: users.name,
     email: users.email,
     role: users.role,
+    adminType: users.adminType,
   }).from(users).where(
     or(
       like(users.name, pattern),
@@ -307,7 +309,7 @@ export async function searchUsers(query: string) {
 /**
  * Update a user's role.
  */
-export async function updateUserRole(userId: number, role: "user" | "kiosk_owner" | "expert" | "admin") {
+export async function updateUserRole(userId: number, role: "user" | "expert" | "admin") {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId));

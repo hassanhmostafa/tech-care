@@ -27,12 +27,12 @@ const requireUser = t.middleware(async opts => {
 
 export const protectedProcedure = t.procedure.use(requireUser);
 
-// Allows kiosk_owner OR admin — used for kiosk editing procedures
+// Allows admin only — kiosk_owner role has been removed
 export const kioskOwnerProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
 
-    if (!ctx.user || (ctx.user.role !== 'kiosk_owner' && ctx.user.role !== 'admin')) {
+    if (!ctx.user || ctx.user.role !== 'admin') {
       throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
     }
 

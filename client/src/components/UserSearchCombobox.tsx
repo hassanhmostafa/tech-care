@@ -15,7 +15,7 @@ type UserOption = {
   id: number;
   name: string | null;
   email: string | null;
-  role: "user" | "kiosk_owner" | "expert" | "admin";
+  role: "user" | "expert" | "admin";
 };
 
 interface UserSearchComboboxProps {
@@ -26,14 +26,12 @@ interface UserSearchComboboxProps {
 
 const ROLE_COLORS: Record<string, string> = {
   admin: "bg-red-100 text-red-700",
-  kiosk_owner: "bg-cyan-100 text-cyan-700",
   user: "bg-gray-100 text-gray-600",
   expert: "bg-teal-100 text-teal-700",
 };
 
 const ROLE_LABELS_AR: Record<string, string> = {
   admin: "مسؤول",
-  kiosk_owner: "مالك كشك",
   user: "مستخدم",
   expert: "خبير",
 };
