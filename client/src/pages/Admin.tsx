@@ -108,38 +108,38 @@ export default function Admin() {
 
   const ADMIN_TAB_KEY = "admin_active_tab";
 
-  // Start with the last visited tab (from sessionStorage) if available,
-  // otherwise fall back to a safe placeholder until auth resolves.
+  // Tabs each adminType is allowed to see.
+  const allowedTabs = (adminType: string | null | undefined): Tab[] => {
+    if (adminType === "expert") return ["expert-requests"];
+    if (adminType === "kiosk") return ["kiosk-devices", "kiosk-test"];
+    return ["users", "expert-requests", "kiosk-devices", "kiosk-test", "admins"]; // super
+  };
+
+  // Restore the last visited tab from sessionStorage.
+  // If the saved tab is not allowed for this user's adminType, fall back to
+  // the first allowed tab (evaluated after auth resolves).
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     const saved = sessionStorage.getItem(ADMIN_TAB_KEY) as Tab | null;
-    return saved ?? "expert-requests";
+    return saved ?? "expert-requests"; // placeholder until auth resolves
   });
-  const [tabInitialised, setTabInitialised] = useState(
-    () => !!sessionStorage.getItem(ADMIN_TAB_KEY)
-  );
+
+  // Once auth resolves, validate the saved tab against the user's allowed tabs.
+  // This handles cross-account scenarios (e.g. super admin logs out, expert logs in).
+  useEffect(() => {
+    if (loading || !user) return;
+    const allowed = allowedTabs(user.adminType);
+    if (!allowed.includes(activeTab)) {
+      const fallback = allowed[0];
+      setActiveTab(fallback);
+      sessionStorage.setItem(ADMIN_TAB_KEY, fallback);
+    }
+  }, [user, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist tab changes to sessionStorage so refresh restores the last tab.
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     sessionStorage.setItem(ADMIN_TAB_KEY, tab);
   };
-
-  // On first load (no saved tab), wait for auth and set the role-based default.
-  useEffect(() => {
-    if (loading || tabInitialised) return;
-    if (!user) return;
-    setTabInitialised(true);
-    let defaultTab: Tab;
-    if (user.adminType === "kiosk") {
-      defaultTab = "kiosk-test";
-    } else if (user.adminType === "expert") {
-      defaultTab = "expert-requests";
-    } else {
-      defaultTab = "admins"; // super or fallback
-    }
-    setActiveTab(defaultTab);
-    sessionStorage.setItem(ADMIN_TAB_KEY, defaultTab);
-  }, [user, loading, tabInitialised]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<KioskFormData>(emptyForm);
