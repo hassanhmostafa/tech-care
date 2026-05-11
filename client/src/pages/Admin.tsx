@@ -106,23 +106,39 @@ export default function Admin() {
   const isAr = language === "ar";
   const utils = trpc.useUtils();
 
-  // Start with a safe placeholder; once auth resolves we set the real default.
-  const [activeTab, setActiveTab] = useState<Tab>("expert-requests");
-  const [tabInitialised, setTabInitialised] = useState(false);
+  const ADMIN_TAB_KEY = "admin_active_tab";
 
-  // Once the user object is available (auth finished loading), set the correct
-  // default tab — but only once, so manual tab clicks are not overridden.
+  // Start with the last visited tab (from sessionStorage) if available,
+  // otherwise fall back to a safe placeholder until auth resolves.
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const saved = sessionStorage.getItem(ADMIN_TAB_KEY) as Tab | null;
+    return saved ?? "expert-requests";
+  });
+  const [tabInitialised, setTabInitialised] = useState(
+    () => !!sessionStorage.getItem(ADMIN_TAB_KEY)
+  );
+
+  // Persist tab changes to sessionStorage so refresh restores the last tab.
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    sessionStorage.setItem(ADMIN_TAB_KEY, tab);
+  };
+
+  // On first load (no saved tab), wait for auth and set the role-based default.
   useEffect(() => {
     if (loading || tabInitialised) return;
     if (!user) return;
     setTabInitialised(true);
+    let defaultTab: Tab;
     if (user.adminType === "kiosk") {
-      setActiveTab("kiosk-test");
+      defaultTab = "kiosk-test";
     } else if (user.adminType === "expert") {
-      setActiveTab("expert-requests");
+      defaultTab = "expert-requests";
     } else {
-      setActiveTab("admins"); // super or fallback
+      defaultTab = "admins"; // super or fallback
     }
+    setActiveTab(defaultTab);
+    sessionStorage.setItem(ADMIN_TAB_KEY, defaultTab);
   }, [user, loading, tabInitialised]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -412,7 +428,7 @@ export default function Admin() {
             {/* Users tab — super admin only */}
             {user?.adminType === "super" && (
               <button
-                onClick={() => setActiveTab("users")}
+                onClick={() => handleTabChange("users")}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "users"
                     ? "border-cyan-500 text-cyan-600"
@@ -427,7 +443,7 @@ export default function Admin() {
             {/* Expert Requests tab — expert + super admins */}
             {(user?.adminType === "expert" || user?.adminType === "super") && (
               <button
-                onClick={() => setActiveTab("expert-requests")}
+                onClick={() => handleTabChange("expert-requests")}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "expert-requests"
                     ? "border-cyan-500 text-cyan-600"
@@ -447,7 +463,7 @@ export default function Admin() {
             {/* Kiosk Devices tab — kiosk + super admins */}
             {(user?.adminType === "kiosk" || user?.adminType === "super") && (
               <button
-                onClick={() => setActiveTab("kiosk-devices")}
+                onClick={() => handleTabChange("kiosk-devices")}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "kiosk-devices"
                     ? "border-cyan-500 text-cyan-600"
@@ -462,7 +478,7 @@ export default function Admin() {
             {/* Kiosk Test tab — kiosk + super admins */}
             {(user?.adminType === "kiosk" || user?.adminType === "super") && (
               <button
-                onClick={() => setActiveTab("kiosk-test")}
+                onClick={() => handleTabChange("kiosk-test")}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "kiosk-test"
                     ? "border-amber-500 text-amber-600"
@@ -477,7 +493,7 @@ export default function Admin() {
             {/* Admins tab — super admin only */}
             {user?.adminType === "super" && (
               <button
-                onClick={() => setActiveTab("admins")}
+                onClick={() => handleTabChange("admins")}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "admins"
                     ? "border-purple-500 text-purple-600"
