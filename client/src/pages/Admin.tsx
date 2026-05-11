@@ -54,11 +54,13 @@ import {
   ClipboardList,
   ShieldCheck,
   Cpu,
+  FlaskConical,
 } from "lucide-react";
 import { TimeSelect } from "@/components/TimeSelect";
 import { UserSearchCombobox } from "@/components/UserSearchCombobox";
 import { Link } from "wouter";
 import { KioskDevicesTab } from "@/components/KioskDevicesTab";
+import { KioskTestTab } from "@/components/KioskTestTab";
 
 interface HourEntry {
   day: string;
@@ -96,7 +98,7 @@ const emptyForm: KioskFormData = {
   services: [],
 };
 
-type Tab = "kiosks" | "users" | "requests" | "expert-requests" | "kiosk-devices" | "admins";
+type Tab = "kiosks" | "users" | "requests" | "expert-requests" | "kiosk-devices" | "kiosk-test" | "admins";
 
 export default function Admin() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -477,6 +479,17 @@ export default function Admin() {
             >
               <Cpu className="w-4 h-4" />
               Kiosk Devices
+            </button>
+            <button
+              onClick={() => setActiveTab("kiosk-test")}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "kiosk-test"
+                  ? "border-amber-500 text-amber-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <FlaskConical className="w-4 h-4" />
+              Kiosk Test
             </button>
             {/* Admins tab — super admin only */}
             {user?.adminType === "super" && (
@@ -883,6 +896,9 @@ export default function Admin() {
         )}
         {/* ── Kiosk Devices Tab ── */}
         {activeTab === "kiosk-devices" && <KioskDevicesTab />}
+
+        {/* ── Kiosk Test Tab ── */}
+        {activeTab === "kiosk-test" && <KioskTestTab />}
 
          {/* ── Admins Tab ── */}
         {activeTab === "admins" && (

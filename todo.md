@@ -232,3 +232,7 @@
 - [x] Add KioskDevicesTab to Admin panel (Kiosk Devices tab)
 - [x] TypeScript: 0 errors, 86 tests passing
 - [x] Push to hassanhmostafa/tech-care GitHub repo
+
+## Kiosk Test Console
+- [x] Build KioskTestTab component (create session + fill readings + POST to /api/kiosk/data)
+- [x] Add Kiosk Test tab to Admin panel
