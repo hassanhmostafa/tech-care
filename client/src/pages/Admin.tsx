@@ -392,56 +392,71 @@ export default function Admin() {
         <section className="bg-white border-b border-gray-200">
           <div className="container flex gap-0">
 
-            <button
-              onClick={() => setActiveTab("users")}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "users"
-                  ? "border-cyan-500 text-cyan-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              Users ({allUsers?.length ?? 0})
-            </button>
+            {/* Users tab — super admin only */}
+            {user?.adminType === "super" && (
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "users"
+                    ? "border-cyan-500 text-cyan-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Users ({allUsers?.length ?? 0})
+              </button>
+            )}
 
-            <button
-              onClick={() => setActiveTab("expert-requests")}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "expert-requests"
-                  ? "border-cyan-500 text-cyan-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <Stethoscope className="w-4 h-4" />
-              Expert Requests
-              {pendingExpertCount > 0 && (
-                <span className="ml-1 bg-teal-400 text-teal-900 text-xs font-bold rounded-full px-1.5 py-0.5">
-                  {pendingExpertCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("kiosk-devices")}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "kiosk-devices"
-                  ? "border-cyan-500 text-cyan-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <Cpu className="w-4 h-4" />
-              Kiosk Devices
-            </button>
-            <button
-              onClick={() => setActiveTab("kiosk-test")}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "kiosk-test"
-                  ? "border-amber-500 text-amber-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <FlaskConical className="w-4 h-4" />
-              Kiosk Test
-            </button>
+            {/* Expert Requests tab — expert + super admins */}
+            {(user?.adminType === "expert" || user?.adminType === "super") && (
+              <button
+                onClick={() => setActiveTab("expert-requests")}
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "expert-requests"
+                    ? "border-cyan-500 text-cyan-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Stethoscope className="w-4 h-4" />
+                Expert Requests
+                {pendingExpertCount > 0 && (
+                  <span className="ml-1 bg-teal-400 text-teal-900 text-xs font-bold rounded-full px-1.5 py-0.5">
+                    {pendingExpertCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Kiosk Devices tab — kiosk + super admins */}
+            {(user?.adminType === "kiosk" || user?.adminType === "super") && (
+              <button
+                onClick={() => setActiveTab("kiosk-devices")}
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "kiosk-devices"
+                    ? "border-cyan-500 text-cyan-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Cpu className="w-4 h-4" />
+                Kiosk Devices
+              </button>
+            )}
+
+            {/* Kiosk Test tab — kiosk + super admins */}
+            {(user?.adminType === "kiosk" || user?.adminType === "super") && (
+              <button
+                onClick={() => setActiveTab("kiosk-test")}
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "kiosk-test"
+                    ? "border-amber-500 text-amber-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <FlaskConical className="w-4 h-4" />
+                Kiosk Test
+              </button>
+            )}
+
             {/* Admins tab — super admin only */}
             {user?.adminType === "super" && (
               <button

@@ -1,0 +1,24 @@
+{
+  "query": "UPDATE users SET adminType = 'super' WHERE email = 'admin@gmail.com';\nSELECT id, name, email, role, adminType FROM users WHERE role = 'admin' ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3qmwguNrnMRfRdb.root --database adQspJefUTFqKyf6yHum6G --execute UPDATE users SET adminType = 'super' WHERE email = 'admin@gmail.com';\nSELECT id, name, email, role, adminType FROM users WHERE role = 'admin' ORDER BY id;",
+  "rows": [
+    {
+      "id": "360042",
+      "name": "Hassan Mostafa",
+      "email": "hassanelsaeed2001@gmail.com",
+      "role": "admin",
+      "adminType": "super"
+    },
+    {
+      "id": "1410259",
+      "name": "Hassan Hatem",
+      "email": "admin@gmail.com",
+      "role": "admin",
+      "adminType": "super"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tadminType\n360042\tHassan Mostafa\thassanelsaeed2001@gmail.com\tadmin\tsuper\n1410259\tHassan Hatem\tadmin@gmail.com\tadmin\tsuper\n",
+  "stderr": "",
+  "execution_time_ms": 1962
+}

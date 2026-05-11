@@ -250,3 +250,12 @@
 - [x] Add updateAdminType procedure to server (super admin only)
 - [x] Add adminType badge + inline dropdown to Current Admins list in Admins tab
 - [x] TypeScript: 0 errors
+
+## Admin Tab Visibility Enforcement
+- [x] Restore admin@gmail.com adminType = super (was accidentally changed)
+- [x] Users tab: super only
+- [x] Expert Requests tab: expert + super
+- [x] Kiosk Devices tab: kiosk + super
+- [x] Kiosk Test tab: kiosk + super
+- [x] Admins tab: super only
+- [x] TypeScript: 0 errors
