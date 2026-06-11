@@ -268,3 +268,11 @@
 - [x] Downgrade kiosk_owner user (hassanelsaeed2001m@outlook.com) to regular user
 - [x] ALTER TABLE to remove kiosk_owner from MySQL enum
 - [x] TypeScript: 0 errors
+
+## PWA Support
+- [x] Generate Tech Care app icon (512x512, cyan/blue gradient with heart + pulse)
+- [x] Install vite-plugin-pwa
+- [x] Configure VitePWA in vite.config.ts (manifest, service worker, icons)
+- [x] Create PWAInstallPrompt component (Android install banner + iOS step-by-step instructions)
+- [x] Add PWAInstallPrompt to App.tsx
+- [x] TypeScript: 0 errors

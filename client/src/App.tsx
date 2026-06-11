@@ -18,6 +18,7 @@ import FindExperts from "./pages/FindExperts";
 import ExpertInbox from "./pages/ExpertInbox";
 import ExpertRegistration from "./pages/ExpertRegistration";
 import Login from "./pages/Login";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -59,6 +60,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <PWAInstallPrompt />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
