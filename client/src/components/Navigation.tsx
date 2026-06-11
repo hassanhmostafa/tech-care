@@ -1,16 +1,24 @@
 import { Link, useLocation } from "wouter";
-import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2, CalendarDays, Stethoscope, MessageCircle } from "lucide-react";
+import { Heart, Menu, X, LayoutDashboard, LogIn, LogOut, UserCircle2, Globe, Sparkles, Building2, CalendarDays, Stethoscope, MessageCircle, Download, Share } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useInstallApp, IOSInstallModal } from "@/components/PWAInstallPrompt";
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const [location] = useLocation();
   const { language, setLanguage, t, isRTL } = useLanguage();
+  const { canInstall, isIOS, install } = useInstallApp();
+  const [showIOSModal, setShowIOSModal] = useState(false);
+
+  const handleNavInstall = async () => {
+    if (isIOS) { setShowIOSModal(true); return; }
+    await install();
+  };
 
   const navLinks = [
     { href: "/find-station", label: t.nav_findStation },
@@ -21,6 +29,7 @@ export default function Navigation() {
   const toggleLanguage = () => setLanguage(language === "en" ? "ar" : "en");
 
   return (
+    <>
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
       <div className="container flex items-center justify-between h-16">
         {/* Logo */}
@@ -111,6 +120,18 @@ export default function Navigation() {
 
         {/* Desktop Auth + Language */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Install App Button — desktop */}
+          {canInstall && (
+            <button
+              onClick={handleNavInstall}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cyan-300 bg-cyan-50 hover:bg-cyan-100 transition-colors text-sm font-medium text-cyan-700"
+              title={language === "ar" ? "تثبيت التطبيق" : "Install App"}
+            >
+              {isIOS ? <Share className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+              {language === "ar" ? "تثبيت" : "Install"}
+            </button>
+          )}
+
           {/* Language Toggle */}
           <button
             onClick={toggleLanguage}
@@ -243,6 +264,17 @@ export default function Navigation() {
                 </div>
               </Link>
             )}
+            {/* Install App — mobile menu */}
+            {canInstall && (
+              <button
+                onClick={() => { handleNavInstall(); setIsOpen(false); }}
+                className="flex items-center gap-2 py-2 text-cyan-700 font-medium w-full"
+              >
+                {isIOS ? <Share className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                {language === "ar" ? "تثبيت التطبيق" : "Install App"}
+              </button>
+            )}
+
             <div className="flex gap-2 pt-4 border-t border-gray-100">
               {isAuthenticated ? (
                 <Button
@@ -268,5 +300,9 @@ export default function Navigation() {
         </div>
       )}
     </nav>
+
+    {/* iOS install modal triggered from nav button */}
+    {showIOSModal && <IOSInstallModal onClose={() => setShowIOSModal(false)} />}
+    </>
   );
 }
