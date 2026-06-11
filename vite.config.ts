@@ -188,6 +188,7 @@ const plugins = [
     workbox: {
       globPatterns: ["**/*.{js,css,html}"],
       navigateFallback: null,
+      maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB — main bundle is ~3MB
       runtimeCaching: [
         {
           urlPattern: /^\/api\//,
